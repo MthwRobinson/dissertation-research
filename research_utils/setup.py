@@ -1,7 +1,6 @@
 from setuptools import setup, find_packages
 
 reqs = [
-    'git+https://github.com/mthwrobinson/pymeetup.git@master',
     'click',
     'daiquiri',
     'matplotlib',
