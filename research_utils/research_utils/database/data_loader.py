@@ -1,0 +1,74 @@
+""" Utility for loading Meetup data into the database """
+import datetime
+import logging
+from time import sleep
+
+import arrow
+import daiquiri
+
+from pymeetup import Meetup
+from research_utils import Database
+
+class DataLoader:
+    def __init__(self):
+        daiquiri.setup(level=logging.INFO)
+        self.logger = daiquiri.getLogger(__name__)
+        self.database = Database()
+        self.meetup = Meetup()
+
+    def load_data(self):
+        """ Loads data into the database. """
+        self.load_groups()
+        self.load_events()
+
+    def load_groups(self):
+        """ Loads groups into the database. """
+        groups = self.get_groups()
+        for group in groups:
+            group_ = self.database.get_item('groups', group[0])
+            if not group_:
+                item = {'id': group[0], 
+                        'name': group[1],
+                        'members': group[2],
+                        'past_event_count': group[3]}
+                self.database.delete_item('groups', group[0])
+                self.database.load_item(item, 'groups')
+
+    def get_groups(self):
+        """ Pulls a list of groups to include in the data. """
+        orders = ['most_active', 'newest', 'distance']
+        all_groups = set()
+        for order in orders:
+            groups = self.meetup.find_groups(page=200, zip_code=20001, 
+                                            radius=25, order=order, 
+                                            fields=['past_event_count'])
+            for group in groups:
+                id_ = group['urlname']
+                name = group['name']
+                members = group['members']
+                if 'past_event_count' in group:
+                    past_event_count = group['past_event_count']
+                else:
+                    past_event_count = None
+                entry = (id_, name, members, past_event_count)
+                all_groups.add(entry)
+        return all_groups
+
+    def load_events(self):
+        """ Loads events into the database. """
+        groups = self.database.read_table('groups')
+        for i in groups.index:
+            group = dict(groups.loc[i])
+            msg = 'Loading: {}'.format(group['name'])
+            self.logger.info(msg)
+            events = self.meetup.get_events(group['id'], page=1000,
+                                            no_earlier_than='2009-01-01',
+                                            no_later_than='2019-01-01')
+            for event in events:
+                timestamp = arrow.get(event['time']/1000).datetime
+                item = {'id': event['id'], 'group_id': group['id'],
+                        'name': event['name'], 'event_time': timestamp,
+                        'yes_rsvp_count': event['yes_rsvp_count']}
+                self.database.delete_item('events', event['id'])
+                self.database.load_item(item, 'events')
+                sleep(3)
