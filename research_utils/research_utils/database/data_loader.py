@@ -5,6 +5,7 @@ from time import sleep
 
 import arrow
 import daiquiri
+import pandas as pd
 
 from pymeetup import Meetup
 from research_utils import Database
@@ -56,7 +57,14 @@ class DataLoader:
 
     def load_events(self):
         """ Loads events into the database. """
-        groups = self.database.read_table('groups')
+        sql = """
+            SELECT *
+            FROM dissertation.groups
+            WHERE id NOT IN (SELECT DISTINCT group_id
+                             FROM dissertation.events)
+        """
+        groups = pd.read_sql(sql, self.database.connection)
+        import ipdb; ipdb.set_trace()
         for i in groups.index:
             group = dict(groups.loc[i])
             msg = 'Loading: {}'.format(group['name'])
@@ -71,4 +79,4 @@ class DataLoader:
                         'yes_rsvp_count': event['yes_rsvp_count']}
                 self.database.delete_item('events', event['id'])
                 self.database.load_item(item, 'events')
-                sleep(3)
+                sleep(5)
