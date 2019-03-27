@@ -64,7 +64,6 @@ class DataLoader:
                              FROM dissertation.events)
         """
         groups = pd.read_sql(sql, self.database.connection)
-        import ipdb; ipdb.set_trace()
         for i in groups.index:
             group = dict(groups.loc[i])
             msg = 'Loading: {}'.format(group['name'])
@@ -80,3 +79,4 @@ class DataLoader:
                 self.database.delete_item('events', event['id'])
                 self.database.load_item(item, 'events')
                 sleep(5)
+            sleep(5)
