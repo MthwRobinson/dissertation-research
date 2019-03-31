@@ -28,7 +28,7 @@ class DataLoader:
         for group in groups:
             group_ = self.database.get_item('groups', group[0])
             if not group_:
-                item = {'id': group[0], 
+                item = {'id': group[0],
                         'name': group[1],
                         'members': group[2],
                         'past_event_count': group[3]}
@@ -40,8 +40,8 @@ class DataLoader:
         orders = ['most_active', 'newest', 'distance']
         all_groups = set()
         for order in orders:
-            groups = self.meetup.find_groups(page=200, zip_code=20001, 
-                                            radius=25, order=order, 
+            groups = self.meetup.find_groups(page=200, zip_code=20001,
+                                            radius=25, order=order,
                                             fields=['past_event_count'])
             for group in groups:
                 id_ = group['urlname']
@@ -80,3 +80,40 @@ class DataLoader:
                 self.database.load_item(item, 'events')
                 sleep(5)
             sleep(5)
+
+    def load_attendees(self):
+        """ Loads the attendees into the database. """
+        forbidden = []
+        sql = """
+            SELECT *
+            FROM dissertation.events
+            WHERE id NOT IN (SELECT DISTINCT event_id
+                             FROM dissertation.attendees)
+        """
+        events = pd.read_sql(sql, self.database.connection)
+        for i in events.index:
+            event = dict(events.loc[i])
+            if event['group_id'] in forbidden:
+                continue
+            msg = 'Loading: {}-{}'.format(event['group_id'], event['id'])
+            self.logger.info(msg)
+            try:
+                attendees = self.meetup.get_event_rsvps(event['group_id'], event['id'],
+                                                        response='yes')
+            except ValueError:
+                msg = 'Adding {} to forbidden.'.format(event['group_id'])
+                self.logger.warning(msg)
+                forbidden.append(event['group_id'])
+                continue
+
+            for attendee in attendees:
+                if attendee['response'] == 'yes':
+                    sql = """
+                        INSERT INTO dissertation.attendees
+                        (member_id, event_id, group_id)
+                        VALUES ('{}', '{}', '{}')
+                    """.format(attendee['member']['id'], event['id'],
+                               event['group_id'])
+                    self.database.run_query(sql)
+            sleep(5)
+        sleep(5)
