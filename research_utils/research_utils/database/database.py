@@ -25,7 +25,7 @@ class Database(object):
 
         # Database connection and configurations
         self.columns = {}
-        self.schema = 'dissertation'
+        self.schema = 'open_source'
         self.database = 'postgres'
         self.connection = psycopg2.connect(user = 'postgres',
                                            dbname = 'postgres',
