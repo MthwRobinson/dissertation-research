@@ -12,7 +12,7 @@ class Github:
     def __init__(self):
         daiquiri.setup(level=logging.INFO)
         self.logger = daiquiri.getLogger(__name__)
-        self.database = database()
+        self.database = Database()
 
     def load_packages(self, truncate=False):
         """Loads the list of most popular Python packages into the DB."""
@@ -21,10 +21,7 @@ class Github:
 
         markdown = get_popular_package_md()
         packages = parse_package_md(markdown)
-        for i, package in enumerate(packages):
-            item['id'] = i
-            item['package_name'] = package
-
+        return packages
 
 def get_popular_package_md():
     """Pulls a markdown file with a curated list of popular
