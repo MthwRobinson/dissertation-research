@@ -1,12 +1,12 @@
 """Module for pulling contributor information from Github."""
 import logging
 import re
+import uuid
 
 import daiquiri
 import requests
 
 from research_utils import Database
-
 
 class Github:
     def __init__(self):
@@ -21,7 +21,27 @@ class Github:
 
         markdown = get_popular_package_md()
         packages = parse_package_md(markdown)
-        return packages
+        github_packages = find_github_packages(packages)
+        self.database.load_items(github_packages, 'packages')
+
+def find_github_packages(packages):
+    """Finds which packages are on Github and formats them for
+    upload to the database."""
+    github_packages = []
+    for package in packages:
+        url = packages[package]
+        if url.startswith('https://github.com'):
+            info = url.split('/')
+            package_name = info[-1]
+            org_name = info[-2]
+            item = {
+                'id': uuid.uuid4().hex,
+                'package_name': package_name,
+                'org_name': org_name,
+                'url': url
+            }
+            github_packages.append(item)
+    return github_packages
 
 def get_popular_package_md():
     """Pulls a markdown file with a curated list of popular
