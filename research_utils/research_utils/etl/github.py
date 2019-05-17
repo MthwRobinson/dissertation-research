@@ -1,18 +1,72 @@
 """Module for pulling contributor information from Github."""
+import getpass
 import logging
+import json
 import re
 import uuid
 
 import daiquiri
 import requests
+from requests.auth import HTTPBasicAuth
 
 from research_utils import Database
 
 class Github:
-    def __init__(self):
+    def __init__(self, username=None, password=None):
         daiquiri.setup(level=logging.INFO)
         self.logger = daiquiri.getLogger(__name__)
         self.database = Database()
+
+        if not username or not password:
+            print('Enter your Github username: ')
+            username = input()
+            print('Enter your Github password: ')
+            password = getpass.getpass()
+        self.username = username
+        self.password = password
+
+        self.base_url = 'https://api.github.com'
+
+    def get(self, url):
+        """Makes an authenticated request to the Github API."""
+        auth = HTTPBasicAuth(self.username, self.password)
+        response = requests.get(url, auth=auth)
+        return response
+
+    def get_issues(self, organization, package):
+        """Pull a list of issues for the specified organization and package."""
+        issues = []
+        url = '{}/repos/{}/{}/issues?state=all'.format(self.base_url,
+                                                       organization,
+                                                       package)
+        response = self.get(url)
+        if response.status_code == 200:
+            while True:
+                issues += json.loads(response.text)
+                headers = response.headers
+                links = requests.utils.parse_header_links(headers['Link'])
+                next_page = [x for x in links if x['rel'] == 'next']
+                if next_page:
+                    url = next_page[0]['url']
+                    response = self.get(url)
+                else:
+                    break
+        else:
+            msg = 'Bad request for {}/{}'.format(organization, package)
+            self.logger.warning(msg)
+        return issues
+
+    def get_issue_comments(self, organization, package, issue_number):
+        """Pulls the specified issue number."""
+        url = '{}/repos/{}/{}/issues/{}/comments'.format(self.base_url,
+                                                         organization,
+                                                         package,
+                                                         issue_number)
+        response = self.get(url)
+        if response.status_code == 200:
+            return json.loads(response.text)
+        else:
+            return None
 
     def load_packages(self, truncate=False):
         """Loads the list of most popular Python packages into the DB."""
