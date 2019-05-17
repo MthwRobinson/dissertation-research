@@ -11,6 +11,14 @@ from requests.auth import HTTPBasicAuth
 
 from research_utils import Database
 
+CURATED_LISTS = {
+    'javascript': 'sorrycc/awesome-javascript',
+    'java': 'akullpp/awesome-java',
+    'python': 'vinta/awesome-python',
+    'php': 'ziadoz/awesome-php',
+    'cpp': 'fffaraz/awesome-cpp'
+}
+
 class Github:
     def __init__(self, username=None, password=None):
         daiquiri.setup(level=logging.INFO)
@@ -35,25 +43,10 @@ class Github:
 
     def get_issues(self, organization, package):
         """Pull a list of issues for the specified organization and package."""
-        issues = []
         url = '{}/repos/{}/{}/issues?state=all'.format(self.base_url,
                                                        organization,
                                                        package)
-        response = self.get(url)
-        if response.status_code == 200:
-            while True:
-                issues += json.loads(response.text)
-                headers = response.headers
-                links = requests.utils.parse_header_links(headers['Link'])
-                next_page = [x for x in links if x['rel'] == 'next']
-                if next_page:
-                    url = next_page[0]['url']
-                    response = self.get(url)
-                else:
-                    break
-        else:
-            msg = 'Bad request for {}/{}'.format(organization, package)
-            self.logger.warning(msg)
+        issues = self._traverse_response(url)
         return issues
 
     def get_issue_comments(self, organization, package, issue_number):
@@ -68,17 +61,51 @@ class Github:
         else:
             return None
 
+    def get_contributors(self, organization, package):
+        """Pulls a list of contributors for a package."""
+        url = '{}/repos/{}/{}/stats/contributors?sort=total&direction=desc'.format(self.base_url,
+                                                         organization,
+                                                         package)
+        response = self.get(url)
+        if response.status_code == 200:
+            return json.loads(response.text)
+        else:
+            return None
+
+    def _traverse_response(self, url):
+        """Traverses a response that is split over multiple pages."""
+        items = []
+        response = self.get(url)
+        status = response.status_code
+        if status == 200:
+            while True:
+                items += json.loads(response.text)
+                headers = response.headers
+                links = requests.utils.parse_header_links(headers['Link'])
+                next_page = [x for x in links if x['rel'] == 'next']
+                if next_page:
+                    url = next_page[0]['url']
+                    response = self.get(url)
+                else:
+                    break
+        else:
+            msg = 'Bad request (status code {}) for {}'.format(status, url)
+            self.logger.warning(msg)
+            items = None
+        return items
+
     def load_packages(self, truncate=False):
         """Loads the list of most popular Python packages into the DB."""
         if truncate:
             self.database.truncate_table('packages')
 
-        markdown = get_popular_package_md()
-        packages = parse_package_md(markdown)
-        github_packages = find_github_packages(packages)
-        self.database.load_items(github_packages, 'packages')
+        for language in CURATED_LISTS:
+            markdown = get_popular_package_md(CURATED_LISTS[language])
+            packages = parse_package_md(markdown)
+            github_packages = find_github_packages(packages, language)
+            self.database.load_items(github_packages, 'packages')
 
-def find_github_packages(packages):
+def find_github_packages(packages, language):
     """Finds which packages are on Github and formats them for
     upload to the database."""
     github_packages = []
@@ -92,15 +119,16 @@ def find_github_packages(packages):
                 'id': uuid.uuid4().hex,
                 'package_name': package_name,
                 'org_name': org_name,
-                'url': url
+                'url': url,
+                'language': language
             }
             github_packages.append(item)
     return github_packages
 
-def get_popular_package_md():
+def get_popular_package_md(repo):
     """Pulls a markdown file with a curated list of popular
     open source Python packages."""
-    url = 'https://raw.githubusercontent.com/vinta/awesome-python/master/README.md'
+    url = 'https://raw.githubusercontent.com/{}/master/README.md'.format(repo)
     response = requests.get(url)
     return response.text
 
