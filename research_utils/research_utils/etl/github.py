@@ -6,8 +6,10 @@ import re
 import uuid
 
 import daiquiri
+import datetime
 import requests
 from requests.auth import HTTPBasicAuth
+import time
 
 from research_utils import Database
 
@@ -39,6 +41,22 @@ class Github:
         """Makes an authenticated request to the Github API."""
         auth = HTTPBasicAuth(self.username, self.password)
         response = requests.get(url, auth=auth)
+        if response.status_code == 403:
+            headers = response.headers
+            if headers['X-RateLimit-Remaining'] == 0:
+                # Determine how much time until the rate limit resets
+                reset_ts = float(headers['X-RateLimit-Reset'])
+                reset_time = datetime.datetime.fromtimestamp(reset_ts)
+                now = datetime.datetime.now()
+                sleep_time = (reset_time - now).total_seconds()
+
+                # Sleep until the rate limit resets and try the
+                # API call again
+                msg = 'Rate limit exceeded. Sleeping for {}s'.format(sleep_time)
+                self.logger.info(msg)
+                time.sleep(sleep_time)
+                response = requests.get(url, auth=auth)
+        #time.sleep(1) # To keep under the Github rate limit
         return response
 
     def get_issues(self, organization, package):
