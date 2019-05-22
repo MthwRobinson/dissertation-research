@@ -3,15 +3,12 @@ import getpass
 import logging
 import json
 import re
-import uuid
 
 import daiquiri
 import datetime
 import requests
 from requests.auth import HTTPBasicAuth
 import time
-
-from research_utils import Database
 
 CURATED_LISTS = {
     'javascript': 'sorrycc/awesome-javascript',
@@ -22,10 +19,9 @@ CURATED_LISTS = {
 }
 
 class Github:
-    def __init__(self, username=None, password=None):
+    def __init__(self, username=None, password=None, sleep=True):
         daiquiri.setup(level=logging.INFO)
         self.logger = daiquiri.getLogger(__name__)
-        self.database = Database()
 
         if not username or not password:
             print('Enter your Github username: ')
@@ -36,6 +32,7 @@ class Github:
         self.password = password
 
         self.base_url = 'https://api.github.com'
+        self.sleep = sleep
 
     def get(self, url):
         """Makes an authenticated request to the Github API."""
@@ -56,7 +53,9 @@ class Github:
                 self.logger.info(msg)
                 time.sleep(sleep_time)
                 response = requests.get(url, auth=auth)
-        #time.sleep(1) # To keep under the Github rate limit
+
+        if self.sleep:
+            time.sleep(1) # To keep under the Github rate limit
         return response
 
     def get_issues(self, organization, package):
@@ -111,54 +110,3 @@ class Github:
             self.logger.warning(msg)
             items = None
         return items
-
-    def load_packages(self, truncate=False):
-        """Loads the list of most popular Python packages into the DB."""
-        if truncate:
-            self.database.truncate_table('packages')
-
-        for language in CURATED_LISTS:
-            markdown = get_popular_package_md(CURATED_LISTS[language])
-            packages = parse_package_md(markdown)
-            github_packages = find_github_packages(packages, language)
-            self.database.load_items(github_packages, 'packages')
-
-def find_github_packages(packages, language):
-    """Finds which packages are on Github and formats them for
-    upload to the database."""
-    github_packages = []
-    for package in packages:
-        url = packages[package]
-        if url.startswith('https://github.com'):
-            info = url.split('/')
-            package_name = info[-1]
-            org_name = info[-2]
-            item = {
-                'id': uuid.uuid4().hex,
-                'package_name': package_name,
-                'org_name': org_name,
-                'url': url,
-                'language': language
-            }
-            github_packages.append(item)
-    return github_packages
-
-def get_popular_package_md(repo):
-    """Pulls a markdown file with a curated list of popular
-    open source Python packages."""
-    url = 'https://raw.githubusercontent.com/{}/master/README.md'.format(repo)
-    response = requests.get(url)
-    return response.text
-
-def parse_package_md(markdown):
-    """Pulls URLs and package names out of the popular package markdown."""
-    url_regex = re.compile(r'(?:__|[*])|\[(.*?)\)')
-    results = url_regex.findall(markdown)
-    packages = {}
-    for result in results:
-        if '](' in result:
-            package = result.split('](')
-            name = package[0]
-            url = package[1]
-            packages[name] = url
-    return packages
