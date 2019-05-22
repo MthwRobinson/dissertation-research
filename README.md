@@ -37,7 +37,9 @@ Research Questions and Hypotheses
 
   ### CLI Commands
 
+  The following CLI commands are available through the `research_utils` package.
+
   #### Load Issues
-  Example: `research_utils load-issues`
+  Example: `$ research_utils load-issues`
 
   Description: Connects to the Github API to fetch issues for open source packages and load them into a Postgres database for follow on analysis.
