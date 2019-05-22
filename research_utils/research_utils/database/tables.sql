@@ -20,6 +20,7 @@ CREATE TABLE IF NOT EXISTS open_source.issues (
   organization text,
   package text,
   user_id text,
+  user_login text,
   issue_number integer,
   title text,
   created_at timestamp,

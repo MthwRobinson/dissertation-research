@@ -37,6 +37,15 @@ class DataLoader:
             github_packages = find_github_packages(packages, language)
             self.database.load_items(github_packages, 'packages')
 
+    def load_issues(self):
+        """Loads issues for all packages into Postgres."""
+        packages = self._packages_without_issues()
+        for i, package in enumerate(packages):
+            if i%100 == 0:
+                msg = 'Issues for {} packages loaded.'.format(i)
+            self._load_package_issues(package['organization']
+                                      package['package'])
+
     def _load_package_issues(self, organization, package):
         """Loads the issues for the specified package into the database."""
         msg = 'Loading issues for {}/{}'.format(organization, package)
@@ -78,10 +87,7 @@ class DataLoader:
                 'assignee': assignee,
                 'pull_request': 'pull_request' in issue
             }
-            try:
-                self.database.load_item(item=item, table='issues')
-            except:
-                import ipdb; ipdb.set_trace()
+            self.database.load_item(item=item, table='issues')
 
     def _get_package_id(self, organization, package):
         """Pulls the package id for the specified package."""
@@ -97,6 +103,24 @@ class DataLoader:
             return df.loc[0]['id']
         else:
             return None
+
+    def _packages_without_issues(self):
+        """Pulls a list of packages that haven't had their issues
+        loaded into postgres yet."""
+        sql = """
+            SELECT org_name as organization, package_name as package
+            FROM {schema}.packages
+            WHERE id NOT IN (
+                SELECT DISTINCT package_id as id
+                FROM {schema}.issues
+            )
+        """.format(schema=self.database.schema)
+        df = pd.read_sql(sql, self.database.connection)
+        packages = []
+        for i in df.index:
+            package = dict(df.loc[i])
+            packages.append(package)
+        return packages
 
 def find_github_packages(packages, language):
     """Finds which packages are on Github and formats them for
