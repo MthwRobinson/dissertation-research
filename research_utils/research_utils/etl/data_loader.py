@@ -43,6 +43,7 @@ class DataLoader:
         num_packages = len(packages)
         for i, package in enumerate(packages):
             msg = 'Issues for {}/{} packages loaded.'.format(i, num_packages)
+            self.logger.info(msg)
             self._load_package_issues(package['organization'],
                                       package['package'])
 
