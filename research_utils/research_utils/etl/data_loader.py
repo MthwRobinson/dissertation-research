@@ -44,8 +44,15 @@ class DataLoader:
         for i, package in enumerate(packages):
             msg = 'Issues for {}/{} packages loaded.'.format(i, num_packages)
             self.logger.info(msg)
-            self._load_package_issues(package['organization'],
-                                      package['package'])
+            organization = package['organization']
+            package = package['package']
+            try:
+                self._load_package_issues(organization ,package)
+            except KeyError:
+                msg = 'Issues load failed for {}/{}.'.format(package,
+                                                             organization)
+                self.logger.warning(msg)
+
 
     def _load_package_issues(self, organization, package):
         """Loads the issues for the specified package into the database."""
