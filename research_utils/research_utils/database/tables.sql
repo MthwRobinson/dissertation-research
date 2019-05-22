@@ -7,3 +7,23 @@ CREATE TABLE IF NOT EXISTS open_source.packages (
   url text,
   language text
 );
+
+CREATE TABLE IF NOT EXISTS open_source.users (
+  id text,
+  login text,
+  user_type text
+);
+
+CREATE TABLE IF NOT EXISTS open_source.issues (
+  id text,
+  package_id text,
+  user_id text,
+  issue_number integer,
+  created_at timestamp,
+  updated_at timestamp,
+  closed_at timestamp,
+  labels text[],
+  assignee text,
+  assignees text[],
+  pull_request boolean
+);
