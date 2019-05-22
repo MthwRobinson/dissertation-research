@@ -25,7 +25,7 @@ Summary:
     6. Impact seekers
 - Similar Approaches:
     1. Customer Specific RE
-    2. Crowd Sourcing -- difference, Crowd Based RE relies on crowed members who are interested in the product, whereas crowd sourcing normally provides some sort of reward for participating (i.e. bug bounties)
+    2. Crowd Sourcing -- difference, Crowd Based RE relies on crowed members who are interested in the product, whereas crowd sourcing normally provides some sort of reward for participating (i.e. bug bounties, or mechanical turk)
 - Challenges:
     1. Need to motivated crowd members
     2. Forum for eliciting feedback
