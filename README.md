@@ -35,8 +35,9 @@ Research Questions and Hypotheses
   The `research_utils` is a software package written in Python to aid with research tasks.
   To install the package, create a Python environment, navigate to `research_utils` and run `pip install -e .`.
 
-  ### CLI Comments
+  ### CLI Commands
 
-  Command: Load Issues
+  #### Load Issues
   Example: `research_utils load-issues`
+
   Description: Connects to the Github API to fetch issues for open source packages and load them into a Postgres database for follow on analysis.
