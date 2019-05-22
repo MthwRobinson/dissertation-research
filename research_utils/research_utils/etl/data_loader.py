@@ -40,10 +40,11 @@ class DataLoader:
     def load_issues(self):
         """Loads issues for all packages into Postgres."""
         packages = self._packages_without_issues()
+        num_packages = len(packages)
         for i, package in enumerate(packages):
             if i%100 == 0:
-                msg = 'Issues for {} packages loaded.'.format(i)
-            self._load_package_issues(package['organization']
+                msg = 'Issues for {}/{} packages loaded.'.format(i, num_packages)
+            self._load_package_issues(package['organization'],
                                       package['package'])
 
     def _load_package_issues(self, organization, package):
@@ -89,6 +90,32 @@ class DataLoader:
             }
             self.database.load_item(item=item, table='issues')
 
+            self._load_issue_comments(organization,
+                                      package,
+                                      issue['number'],
+                                      issue['id'])
+
+    def _load_issue_comments(self, organization, package,
+                             issue_number, issue_id):
+        """Loads the comments for the specified issue number."""
+        comments = self.github.get_issue_comments(organization, package,
+                                                  issue_number)
+        for comment in comments:
+            self.database.delete_item(item_id=comment['id'], table='comments')
+            item = {
+                'id': comment['id'],
+                'organization': organization,
+                'package': package,
+                'issue_id': issue_id,
+                'issue_number': issue_number,
+                'user_id': comment['user']['id'],
+                'user_login': comment['user']['login'],
+                'body': comment['body'],
+                'updated_at': comment['updated_at'],
+                'created_at': comment['created_at']
+            }
+            self.database.load_item(item=item, table='comments')
+
     def _get_package_id(self, organization, package):
         """Pulls the package id for the specified package."""
         sql = """
@@ -98,6 +125,22 @@ class DataLoader:
             AND package_name = '{package}'
         """.format(schema=self.database.schema, organization=organization,
                    package=package)
+        df = pd.read_sql(sql, self.database.connection)
+        if len(df) > 0:
+            return df.loc[0]['id']
+        else:
+            return None
+
+    def _get_issue_id(self, organization, package, issue_number):
+        """Converts the issue number to an issue id."""
+        sql = """
+            SELECT id
+            FROM {schema}.issues
+            WHERE organization = '{organization}'
+            AND package = '{package}'
+            AND issue_number = {issue_number}
+        """.format(schema=self.database.schema, organization=organization,
+                   package=package, issue_number=issue_number)
         df = pd.read_sql(sql, self.database.connection)
         if len(df) > 0:
             return df.loc[0]['id']

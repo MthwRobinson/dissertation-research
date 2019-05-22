@@ -31,3 +31,16 @@ CREATE TABLE IF NOT EXISTS open_source.issues (
   assignees text[],
   pull_request boolean
 );
+
+CREATE TABLE IF NOT EXISTS open_source.comments (
+  id text,
+  organization text,
+  package text,
+  issue_id text,
+  issue_number integer,
+  user_id text,
+  user_login text,
+  body text,
+  updated_at timestamp,
+  created_at timestamp
+);
