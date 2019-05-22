@@ -42,8 +42,7 @@ class DataLoader:
         packages = self._packages_without_issues()
         num_packages = len(packages)
         for i, package in enumerate(packages):
-            if i%100 == 0:
-                msg = 'Issues for {}/{} packages loaded.'.format(i, num_packages)
+            msg = 'Issues for {}/{} packages loaded.'.format(i, num_packages)
             self._load_package_issues(package['organization'],
                                       package['package'])
 
