@@ -30,7 +30,7 @@ def load_issues():
     LOGGER.info('Finished loading Github issues at {}.'.format(start))
     seconds = (end - start).total_seconds()
     LOGGER.info('Loading issues took {} mins.'.format(seconds/60))
-main.add_commant(load_issues)
+main.add_command(load_issues)
 
 if __name__ == '__main__':
     main()
