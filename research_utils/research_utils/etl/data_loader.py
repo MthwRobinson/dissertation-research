@@ -5,6 +5,7 @@ import uuid
 
 import daiquiri
 import requests
+from requests.exceptions import ConnectionError
 import pandas as pd
 
 from research_utils import Database
@@ -52,7 +53,11 @@ class DataLoader:
                 msg = 'Issues load failed for {}/{}.'.format(package,
                                                              organization)
                 self.logger.warning(msg)
-
+            except ConnectionError:
+                msg = 'Connection error for {}/{}. Trying again'.format(package,
+                                                                        organization)
+                self.logger.warning(msg)
+                self._load_package_issues(organization ,package)
 
     def _load_package_issues(self, organization, package):
         """Loads the issues for the specified package into the database."""
