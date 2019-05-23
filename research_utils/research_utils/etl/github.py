@@ -8,6 +8,7 @@ import daiquiri
 import datetime
 import requests
 from requests.auth import HTTPBasicAuth
+from requests.exceptions import ConnectionError
 import time
 
 CURATED_LISTS = {
@@ -37,7 +38,13 @@ class Github:
     def get(self, url):
         """Makes an authenticated request to the Github API."""
         auth = HTTPBasicAuth(self.username, self.password)
-        response = requests.get(url, auth=auth)
+        try:
+            response = requests.get(url, auth=auth)
+        except ConnectionError:
+            msg = 'Connection error for {}. Trying again.'.format(url)
+            self.logger.warning(msg)
+            self.get(url)
+
         if response.status_code == 403:
             headers = response.headers
             if headers['X-RateLimit-Remaining'] == 0:

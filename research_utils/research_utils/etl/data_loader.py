@@ -5,7 +5,6 @@ import uuid
 
 import daiquiri
 import requests
-from requests.exceptions import ConnectionError
 import pandas as pd
 
 from research_utils import Database
@@ -53,11 +52,6 @@ class DataLoader:
                 msg = 'Issues load failed for {}/{}.'.format(package,
                                                              organization)
                 self.logger.warning(msg)
-            except ConnectionError:
-                msg = 'Connection error for {}/{}. Trying again'.format(package,
-                                                                        organization)
-                self.logger.warning(msg)
-                self._load_package_issues(organization ,package)
 
     def _load_package_issues(self, organization, package):
         """Loads the issues for the specified package into the database."""
@@ -67,66 +61,68 @@ class DataLoader:
         package_id = self._get_package_id(organization, package)
         issues = self.github.get_issues(organization, package)
 
-        for issue in issues:
-            self.database.delete_item(item_id=issue['id'], table='issues')
+        if issues:
+            for issue in issues:
+                self.database.delete_item(item_id=issue['id'], table='issues')
 
-            if issue['labels']:
-                labels = [x['name'] for x in issue['labels']]
-            else:
-                labels = []
-            if issue['assignee']:
-                assignee = issue['assignee']['id']
-            else:
-                assignee = None
-            if issue['assignees']:
-                assignees = [x['id'] for x in issue['assignees']]
-            else:
-                assignees = []
+                if issue['labels']:
+                    labels = [x['name'] for x in issue['labels']]
+                else:
+                    labels = []
+                if issue['assignee']:
+                    assignee = issue['assignee']['id']
+                else:
+                    assignee = None
+                if issue['assignees']:
+                    assignees = [x['id'] for x in issue['assignees']]
+                else:
+                    assignees = []
 
-            item = {
-                'id': issue['id'],
-                'package_id': package_id,
-                'organization': organization,
-                'package': package,
-                'user_id': issue['user']['id'],
-                'user_login': issue['user']['login'],
-                'issue_number': issue['number'],
-                'title': issue['title'],
-                'created_at': issue['created_at'],
-                'updated_at': issue['updated_at'],
-                'closed_at': issue['closed_at'],
-                'labels': labels,
-                'assignees': assignees,
-                'assignee': assignee,
-                'pull_request': 'pull_request' in issue
-            }
-            self.database.load_item(item=item, table='issues')
+                item = {
+                    'id': issue['id'],
+                    'package_id': package_id,
+                    'organization': organization,
+                    'package': package,
+                    'user_id': issue['user']['id'],
+                    'user_login': issue['user']['login'],
+                    'issue_number': issue['number'],
+                    'title': issue['title'],
+                    'created_at': issue['created_at'],
+                    'updated_at': issue['updated_at'],
+                    'closed_at': issue['closed_at'],
+                    'labels': labels,
+                    'assignees': assignees,
+                    'assignee': assignee,
+                    'pull_request': 'pull_request' in issue
+                }
+                self.database.load_item(item=item, table='issues')
 
-            self._load_issue_comments(organization,
-                                      package,
-                                      issue['number'],
-                                      issue['id'])
+                self._load_issue_comments(organization,
+                                        package,
+                                        issue['number'],
+                                        issue['id'])
 
     def _load_issue_comments(self, organization, package,
                              issue_number, issue_id):
         """Loads the comments for the specified issue number."""
         comments = self.github.get_issue_comments(organization, package,
                                                   issue_number)
-        for comment in comments:
-            self.database.delete_item(item_id=comment['id'], table='comments')
-            item = {
-                'id': comment['id'],
-                'organization': organization,
-                'package': package,
-                'issue_id': issue_id,
-                'issue_number': issue_number,
-                'user_id': comment['user']['id'],
-                'user_login': comment['user']['login'],
-                'body': comment['body'],
-                'updated_at': comment['updated_at'],
-                'created_at': comment['created_at']
-            }
-            self.database.load_item(item=item, table='comments')
+        if comments:
+            for comment in comments:
+                self.database.delete_item(item_id=comment['id'], table='comments')
+                item = {
+                    'id': comment['id'],
+                    'organization': organization,
+                    'package': package,
+                    'issue_id': issue_id,
+                    'issue_number': issue_number,
+                    'user_id': comment['user']['id'],
+                    'user_login': comment['user']['login'],
+                    'body': comment['body'],
+                    'updated_at': comment['updated_at'],
+                    'created_at': comment['created_at']
+                }
+                self.database.load_item(item=item, table='comments')
 
     def _get_package_id(self, organization, package):
         """Pulls the package id for the specified package."""
@@ -169,6 +165,7 @@ class DataLoader:
                 SELECT DISTINCT package_id as id
                 FROM {schema}.issues
             )
+            ORDER BY random()
         """.format(schema=self.database.schema)
         df = pd.read_sql(sql, self.database.connection)
         packages = []
