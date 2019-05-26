@@ -18,6 +18,10 @@ CURATED_LISTS = {
     'cpp': 'fffaraz/awesome-cpp'
 }
 
+EXCEPT = [
+    'generator-jhipster'
+]
+
 class DataLoader:
     """Class for loading Github data into the Postgres database."""
     def __init__(self, username=None, password=None, sleep=True):
@@ -42,6 +46,8 @@ class DataLoader:
         packages = self._packages_without_issues()
         num_packages = len(packages)
         for i, package in enumerate(packages):
+            if package in EXCEPT:
+                continue
             msg = 'Issues for {}/{} packages loaded.'.format(i, num_packages)
             self.logger.info(msg)
             organization = package['organization']
@@ -49,8 +55,12 @@ class DataLoader:
             try:
                 self._load_package_issues(organization ,package)
             except KeyError:
-                msg = 'Issues load failed for {}/{}.'.format(package,
-                                                             organization)
+                msg = 'Issues load failed for {}/{}. (Key Error)'.format(package,
+                                                                         organization)
+                self.logger.warning(msg)
+            except ValueError:
+                msg = 'Issues load failed for {}/{}. (Value Error)'.format(package,
+                                                                           organization)
                 self.logger.warning(msg)
 
     def _load_package_issues(self, organization, package):
@@ -62,7 +72,7 @@ class DataLoader:
         issues = self.github.get_issues(organization, package)
 
         if issues:
-            for issue in issues:
+            for issue in issues[:1000]:
                 self.database.delete_item(item_id=issue['id'], table='issues')
 
                 if issue['labels']:

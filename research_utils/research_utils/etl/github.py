@@ -43,7 +43,7 @@ class Github:
         except ConnectionError:
             msg = 'Connection error for {}. Trying again.'.format(url)
             self.logger.warning(msg)
-            self.get(url)
+            response = self.get(url)
 
         if response.status_code == 403:
             headers = response.headers
