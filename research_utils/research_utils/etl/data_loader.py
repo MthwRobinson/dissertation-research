@@ -53,7 +53,8 @@ class DataLoader:
             organization = package['organization']
             package = package['package']
             try:
-                self._load_package_issues(organization ,package)
+                self._load_package_issues(organization, package)
+                #self._load_package_contributorss(organization, package)
             except KeyError:
                 msg = 'Issues load failed for {}/{}. (Key Error)'.format(package,
                                                                          organization)
@@ -134,6 +135,24 @@ class DataLoader:
                 }
                 self.database.load_item(item=item, table='comments')
 
+    def _load_package_contributors(self, organization, package):
+        """Loads contributor data for the specified package."""
+        package_id = self._get_package_id(organization, package)
+        contributors = self.github.get_contributors(organization, package)
+
+        if contributors:
+            for contributor in contributors:
+                item = {
+                    'id': uuid.uuid4().hex,
+                    'package_id': package_id,
+                    'organization': organization,
+                    'package': package,
+                    'user_id': contributor['author']['id'],
+                    'login': contributor['author']['login'],
+                    'commits': contributor['total']
+                }
+                self.database.load_item(item=item, table='contributors')
+
     def _get_package_id(self, organization, package):
         """Pulls the package id for the specified package."""
         sql = """
@@ -174,6 +193,24 @@ class DataLoader:
             WHERE id NOT IN (
                 SELECT DISTINCT package_id as id
                 FROM {schema}.issues
+            )
+            ORDER BY random()
+        """.format(schema=self.database.schema)
+        df = pd.read_sql(sql, self.database.connection)
+        packages = []
+        for i in df.index:
+            package = dict(df.loc[i])
+            packages.append(package)
+        return packages
+
+    def _packages_without_contributors(self):
+        """Pulls a list of packages without contributors in postgres."""
+        sql = """
+            SELECT org_name as organization, package_name as package
+            FROM {schema}.packages
+            WHERE id NOT IN (
+                SELECT DISTINCT package_id as id
+                FROM {schema}.contributors
             )
             ORDER BY random()
         """.format(schema=self.database.schema)

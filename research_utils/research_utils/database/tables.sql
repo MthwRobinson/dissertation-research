@@ -44,3 +44,13 @@ CREATE TABLE IF NOT EXISTS open_source.comments (
   updated_at timestamp,
   created_at timestamp
 );
+
+CREATE TABLE IF NOT EXISTS open_source.contributors (
+  id text,
+  package_id text,
+  organization text,
+  package text,
+  user_id text,
+  login text,
+  commits integer
+);
