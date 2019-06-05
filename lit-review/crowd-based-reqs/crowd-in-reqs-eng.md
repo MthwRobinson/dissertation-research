@@ -5,7 +5,7 @@ Chicago citation: Groen, Eduard C., Norbert Seyff, Raian Ali, Fabiano Dalpiaz, J
 ### Summary
 - Useful when there are a large number of users who do not directly interact with product manageers.
 - Traditional RE process do not allow product managers to receive continuous feedback from a large, diverse group of users.
-- CrowdRE: process for producing validated users requirements based on feedback from a crowd. Ideally should be automated or semi-automated.
+- CrowdRE: process for producing validated users requirements based on feedback from a crowd. Ideally should be automated or semi-automated. **Note, other papers have not put as much emphasis on automations, and simply consider crowd sourced requirements**
 - Crowd: "A large group of current or potential users of a software product who interact among themselves or with representatives of the product (software development team)"
     - Target group of stakeholders is very large and potentially diverse
 - CrowdRE Approach:
