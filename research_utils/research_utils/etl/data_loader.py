@@ -142,16 +142,17 @@ class DataLoader:
 
         if contributors:
             for contributor in contributors:
-                item = {
-                    'id': uuid.uuid4().hex,
-                    'package_id': package_id,
-                    'organization': organization,
-                    'package': package,
-                    'user_id': contributor['author']['id'],
-                    'login': contributor['author']['login'],
-                    'commits': contributor['total']
-                }
-                self.database.load_item(item=item, table='contributors')
+                if contributor:
+                    item = {
+                        'id': uuid.uuid4().hex,
+                        'package_id': package_id,
+                        'organization': organization,
+                        'package': package,
+                        'user_id': contributor['author']['id'],
+                        'login': contributor['author']['login'],
+                        'commits': contributor['total']
+                    }
+                    self.database.load_item(item=item, table='contributors')
 
     def _get_package_id(self, organization, package):
         """Pulls the package id for the specified package."""
