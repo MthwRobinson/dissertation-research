@@ -30,7 +30,11 @@ Research Questions and Hypotheses
 5. Does a stakeholder’s position within a network affect the types of requirements the stakeholder generates?
     - On average, the similarity of the content of two stakeholders’ requirements decreases as the distance between them within the network grows.
 
-  ## Research Utils
+## Methodology Map
+
+![Methodology Map](https://raw.githubusercontent.com/mthwrobinson/dissertation-research/img/methodology_map.png)
+
+## Research Utils
 
   The `research_utils` is a software package written in Python to aid with research tasks.
   To install the package, create a Python environment, navigate to `research_utils` and run `pip install -e .`.
