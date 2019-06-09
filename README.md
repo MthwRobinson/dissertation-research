@@ -32,7 +32,7 @@ Research Questions and Hypotheses
 
 ## Methodology Map
 
-![Methodology Map](https://raw.githubusercontent.com/MthwRobinson/dissertation-research/master/img/methodology_map.png?token=AAMPG22CW7RIS3RZCOTYQMC47SJWO)
+![Methodology Map](https://raw.githubusercontent.com/MthwRobinson/dissertation-research/master/img/methodology_map.png)
 
 ## Research Utils
 
