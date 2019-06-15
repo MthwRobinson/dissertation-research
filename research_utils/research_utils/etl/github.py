@@ -105,7 +105,10 @@ class Github:
             while True:
                 items += json.loads(response.text)
                 headers = response.headers
-                links = requests.utils.parse_header_links(headers['Link'])
+                if 'Link' not in headers:
+                    break
+                else:
+                    links = requests.utils.parse_header_links(headers['Link'])
                 next_page = [x for x in links if x['rel'] == 'next']
                 if next_page:
                     url = next_page[0]['url']

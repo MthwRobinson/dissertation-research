@@ -5,6 +5,7 @@ reqs = [
     'daiquiri',
     'matplotlib',
     'networkx',
+    'numpy',
     'pandas',
     'psycopg2-binary',
     'pyyaml',

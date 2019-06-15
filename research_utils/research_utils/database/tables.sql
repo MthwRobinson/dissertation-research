@@ -54,3 +54,10 @@ CREATE TABLE IF NOT EXISTS open_source.contributors (
   login text,
   commits integer
 );
+
+CREATE TABLE IF NOT EXISTS open_source.stakeholder_networks (
+  organization text,
+  package text,
+  stakeholder_network bytea,
+  gini_coefficient numeric
+);

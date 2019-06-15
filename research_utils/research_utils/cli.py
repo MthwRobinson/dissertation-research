@@ -4,7 +4,10 @@ import logging
 
 import click
 import daiquiri
+import pandas as pd
 
+from research_utils.analytics.stakeholder_network import StakeholderNetwork
+from research_utils.database.database import Database
 from research_utils.etl.data_loader import DataLoader
 
 # Configure logging
@@ -31,6 +34,32 @@ def load_issues():
     seconds = (end - start).total_seconds()
     LOGGER.info('Loading issues took {} mins.'.format(seconds/60))
 main.add_command(load_issues)
+
+@click.command('build-networks', help='Builds the SH networks and stores them in the DB.')
+def build_networks():
+    """Builds stakeholders networks and stores them in the postgres table."""
+    database = Database()
+    sql = """
+        SELECT DISTINCT a.package, b.organization
+        FROM open_source.crowd_percentage a
+        INNER JOIN open_source.issue_comments b
+        ON (a.package = b.package
+        AND a.organization = b.organization)
+        WHERE crowd_pct > 0.5
+    """
+    df = pd.read_sql(sql, database.connection)
+    msg = 'Creating stakeholder networks for {} packages'.format(len(df))
+    LOGGER.info(msg)
+    for i in df.index:
+        row = dict(df.loc[i])
+        network = StakeholderNetwork(row['organization'], row['package'])
+        msg = '{}/{} -- Gini: {}'.format(network.organization,
+                                         network.package,
+                                         network.gini)
+        LOGGER.info(msg)
+        network.delete_network()
+        network.load_network()
+main.add_command(build_networks)
 
 if __name__ == '__main__':
     main()
