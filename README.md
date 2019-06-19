@@ -47,3 +47,8 @@ Research Questions and Hypotheses
   Example: `$ research_utils load-issues`
 
   Description: Connects to the Github API to fetch issues for open source packages and load them into a Postgres database for follow on analysis.
+
+  #### Load Networks
+  Example: `$ research_utils load-networks`
+
+  Description: Builds the stakeholder networks, saves a plot of the stakeholder network in the `/img` folder, and computes summary statistics for follow on analysis.

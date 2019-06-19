@@ -116,17 +116,18 @@ class StakeholderNetwork:
     def plot_network(self, save=False):
         """Plots the stakeholder network. If save is set to True,
         the plot is saved as a .jpg to the images folder."""
-        subgraph = biggest_subgraph(self.network)
-        pos = nx.drawing.spring_layout(subgraph)
-        plt.clf()
-        plt.figure(figsize=(20,10))
-        nx.draw(subgraph, pos, node_size=50)
-        if save:
-            filename = '-'.join(['network', self.organization, self.package])
-            filename += '.png'
-            plt.savefig(self.image_path + '/' + filename)
-        else:
-            plt.show()
+        if self.network:
+            subgraph = biggest_subgraph(self.network)
+            pos = nx.drawing.spring_layout(subgraph)
+            plt.clf()
+            plt.figure(figsize=(20,10))
+            nx.draw(subgraph, pos, node_size=50)
+            if save:
+                filename = '-'.join(['network', self.organization, self.package])
+                filename += '.png'
+                plt.savefig(self.image_path + '/' + filename)
+            else:
+                plt.show()
 
 
 def gini(x):
@@ -143,6 +144,9 @@ def biggest_subgraph(network):
     connected_components = nx.connected_components(network)
     graphs = [network.subgraph(x).copy() for x in connected_components]
     sizes = [len(x.nodes) for x in graphs]
-    idx = sizes.index(max(sizes))
-    biggest_graph = graphs[idx]
+    if sizes:
+        idx = sizes.index(max(sizes))
+        biggest_graph = graphs[idx]
+    else:
+        biggest_graph = None
     return biggest_graph
