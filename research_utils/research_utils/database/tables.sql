@@ -59,5 +59,8 @@ CREATE TABLE IF NOT EXISTS open_source.stakeholder_networks (
   organization text,
   package text,
   stakeholder_network bytea,
-  gini_coefficient numeric
+  gini_coefficient numeric,
+  avg_clustering numeric,
+  avg_min_path numeric,
+  ks_pval numeric
 );
