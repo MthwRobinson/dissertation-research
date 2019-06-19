@@ -10,6 +10,7 @@ reqs = [
     'psycopg2-binary',
     'pyyaml',
     'requests',
+    'seaborn',
     'uuid',
 ]
 
