@@ -62,7 +62,7 @@ class Github:
                 response = requests.get(url, auth=auth)
 
         if self.sleep:
-            time.sleep(1) # To keep under the Github rate limit
+            time.sleep(.5) # To keep under the Github rate limit
         return response
 
     def get_issues(self, organization, package):

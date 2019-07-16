@@ -74,7 +74,10 @@ class DataLoader:
 
         if issues:
             for issue in issues[:1000]:
-                self.database.delete_item(item_id=issue['id'], table='issues')
+                try:
+                    self.database.delete_item(item_id=issue['id'], table='issues')
+                except TypeError:
+                    continue
 
                 if issue['labels']:
                     labels = [x['name'] for x in issue['labels']]
