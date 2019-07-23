@@ -8,6 +8,7 @@ import pickle
 import daiquiri
 import matplotlib.pyplot as plt
 import networkx as nx
+from networkx.algorithms.centrality import betweenness_centrality
 import numpy as np
 import pandas as pd
 import scipy.stats as stats
@@ -31,6 +32,8 @@ class StakeholderNetwork:
         self.avg_min_path = self.compute_avg_min_path()
         self.avg_clustering = self.compute_avg_clustering()
         self.ks_pval = self.scale_free_test()
+        self.betweenness_centrality = betweenness_centrality(self.network,
+                                                             normalized=True)
 
     def get_links(self):
         """Pulls links from the database that are used to build
@@ -104,7 +107,7 @@ class StakeholderNetwork:
         }
         self.database.load_item(item, 'stakeholder_networks')
         self.plot_network(save=True)
-    
+
     def delete_network(self):
         """Loads the network into the database."""
         sql = """
@@ -128,6 +131,27 @@ class StakeholderNetwork:
                 plt.savefig(self.image_path + '/' + filename)
             else:
                 plt.show()
+
+    def load_user_centralities(self):
+        """Loads betweenness centrality for each user into the database."""
+        for user_id in self.betweenness_centrality:
+            betweenness_centrality = self.betweenness_centrality[user_id]
+            item = {
+                'organization': self.organization,
+                'package': self.package,
+                'user_id': user_id,
+                'betweenness_centrality': betweenness_centrality
+            }
+            self.database.load_item(item, 'network_centrality')
+
+    def delete_user_centrality(self, user_id):
+        """Deletes the current betweenness centrality for the user from
+        the database."""
+        sql = """
+            DELETE FROM open_source.network_centrality
+            WHERE organization = '{}' AND package = '{}' and user_id = '{}'
+        """.format(self.organization, self.package, user_id)
+        self.database.run_query(sql)
 
 
 def gini(x):

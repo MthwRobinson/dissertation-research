@@ -64,3 +64,10 @@ CREATE TABLE IF NOT EXISTS open_source.stakeholder_networks (
   avg_min_path numeric,
   ks_pval numeric
 );
+
+CREATE TABLE IF NOT EXISTS open_source.network_centrality (
+  organization text,
+  package text,
+  user_id text,
+  betweenness_centrality numeric
+);

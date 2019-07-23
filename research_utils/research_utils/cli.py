@@ -59,6 +59,7 @@ def build_networks():
         LOGGER.info(msg)
         network.delete_network()
         network.load_network()
+        network.load_user_centralities()
 main.add_command(build_networks)
 
 if __name__ == '__main__':
