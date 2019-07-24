@@ -1,12 +1,12 @@
 CREATE MATERIALIZED VIEW open_source.reqs_prioritization
 AS
 SELECT DISTINCT
-	   user_id, package, organization,
+	   user_id, package, organization, commit_pct,
 	   avg_clustering, avg_min_path, gini_coefficient,
 	   total_stakeholders, total_open, betweenness_centrality,
 	   CASE
 	   		WHEN duration IS NOT NULL then duration
-			ELSE EXTRACT(days FROM AGE(NOW(), created_at::TIMESTAMP))
+        ELSE EXTRACT(DAYS FROM NOW() - created_at),
 	   END as duration,
 	   CASE
 	   		WHEN duration IS NOT NULL then 1
@@ -17,7 +17,8 @@ FROM(
 		   avg_clustering, avg_min_path, gini_coefficient,
 		   EXTRACT(days FROM AGE(closed_at::TIMESTAMP, created_at::TIMESTAMP)) as duration,
 		   created_at, closed_at,
-		   c.total_stakeholders, d.total_open, e.betweenness_centrality
+		   c.total_stakeholders, d.total_open, e.betweenness_centrality,
+       pull_request
 	FROM open_source.issues a
 	INNER JOIN open_source.stakeholder_networks b
 	ON (a.organization = b.organization AND a.package = b.package)

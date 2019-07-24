@@ -3,6 +3,7 @@ from setuptools import setup, find_packages
 reqs = [
     'click',
     'daiquiri',
+    'lifelines',
     'matplotlib',
     'networkx',
     'numpy',
