@@ -40,17 +40,19 @@ def build_networks():
     """Builds stakeholders networks and stores them in the postgres table."""
     database = Database()
     sql = """
-        SELECT DISTINCT a.package, b.organization
+        SELECT DISTINCT a.package, a.organization, a.crowd_pct
         FROM open_source.crowd_percentage a
         INNER JOIN open_source.issue_comments b
         ON (a.package = b.package
         AND a.organization = b.organization)
-        WHERE crowd_pct > 0.5
+        INNER JOIN open_source.issue_contributors c
+        ON c.issue_id = b.issue_id
     """
     df = pd.read_sql(sql, database.connection)
     msg = 'Creating stakeholder networks for {} packages'.format(len(df))
     LOGGER.info(msg)
     for i in df.index:
+        LOGGER.info('Creating network for project number {}'.format(i+1))
         row = dict(df.loc[i])
         network = StakeholderNetwork(row['organization'], row['package'])
         msg = '{}/{} -- Gini: {}'.format(network.organization,
@@ -58,7 +60,7 @@ def build_networks():
                                          network.gini)
         LOGGER.info(msg)
         network.delete_network()
-        network.load_network()
+        network.load_network(crowd_pct=row['crowd_pct'])
         network.load_user_centralities()
 main.add_command(build_networks)
 

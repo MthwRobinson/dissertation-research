@@ -94,7 +94,7 @@ class StakeholderNetwork:
             pvalue = None
         return pvalue
 
-    def load_network(self):
+    def load_network(self, crowd_pct):
         """Loads the network into the database."""
         item = {
             'organization': self.organization,
@@ -103,6 +103,7 @@ class StakeholderNetwork:
             'avg_clustering': self.avg_clustering,
             'avg_min_path': self.avg_min_path,
             'ks_pval': self.ks_pval,
+            'crowd_pct': crowd_pct,
             'stakeholder_network': pickle.dumps(self.network)
         }
         self.database.load_item(item, 'stakeholder_networks')
