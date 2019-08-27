@@ -10,8 +10,8 @@ import psycopg2
 from psycopg2.extras import execute_values
 
 class Database(object):
-    """ 
-    Connects to the Postgres database 
+    """
+    Connects to the Postgres database
     Connection settings appear in configuration.py
     Secrets must be stored in a .pgpass file
     """
@@ -19,7 +19,7 @@ class Database(object):
         # Configure the logger
         daiquiri.setup(level=logging.INFO)
         self.logger = daiquiri.getLogger(__name__)
-        
+
         # Find the path to the file
         self.path = os.path.dirname(os.path.realpath(__file__))
 
@@ -94,7 +94,7 @@ class Database(object):
         for key in item:
             if key not in columns:
                 del item_[key]
-        
+
         # Construct the insert statement
         n = len(item_)
         row = "(" + ', '.join(['%s' for i in range(n)]) + ")"
@@ -113,7 +113,7 @@ class Database(object):
         self.connection.commit()
 
     def load_items(self, items, table):
-        """ 
+        """
         Loads a list of items into the database
         This is faster than running load_item in a loop
         because it reduces the number of server calls
@@ -138,7 +138,7 @@ class Database(object):
             VALUES
             %s
         """.format(schema=self.schema, table=table, cols=cols)
-        
+
         # Insert the data
         all_values = []
         for item in items:
@@ -186,21 +186,19 @@ class Database(object):
         """ Updates the value of the specified column """
         sql = """
             UPDATE {schema}.{table}
-            SET {column} = {value}
+            SET {column} = %s
             WHERE id = '{item_id}'
-        """.format(
-            schema=self.schema, 
-            table=table, 
-            column=column, 
-            value=value,
-            item_id=item_id
-        )
-        self.run_query(sql)
+        """.format(schema=self.schema, table=table,
+                   column=column, item_id=item_id)
 
-    def read_table(self, table, columns=None, sort=None, order='desc', 
+        with self.connection.cursor() as cursor:
+            cursor.execute(sql, (value,))
+        self.connection.commit()
+
+    def read_table(self, table, columns=None, sort=None, order='desc',
         limit=None, page=None, query=[], where=[], count=False):
         """ Reads a table into a dataframe.
-        
+
         Parameters
         ----------
             table: string, the name of table in the database
@@ -217,7 +215,7 @@ class Database(object):
                 the condition applies to and the second element
                 is the condition. the condtions have the form
                 options for the condition are '<=', '<', '=',
-                '>', '>=' 
+                '>', '>='
                 (ex. [('start_datetime, {'leq': '2018-01-01'})])
             count: bool, if true, returns the count of the query
                 rather than a results table
@@ -225,7 +223,7 @@ class Database(object):
         Returns
         -------
             a dataframe with the results of the query
-        
+
         """
         if not columns:
             cols = '*'
@@ -256,7 +254,7 @@ class Database(object):
         else:
             df = pd.read_sql(sql, self.connection)
             return df
-    
+
     def count_rows(self, table, query=[], where=[]):
         """ Returns the number of rows, given a query. """
         count = self.read_table(table=table, query=query,
@@ -285,7 +283,7 @@ def _build_query_clauses(query=None):
 
     Returns
     -------
-        list, a list of SQL clauses 
+        list, a list of SQL clauses
     """
     clauses = []
     # Add the conditions from the search term
@@ -295,7 +293,7 @@ def _build_query_clauses(query=None):
         search_terms = query[1].split()
         for term in search_terms:
             search = " lower(%s) like lower('%s%s%s') "%(
-                field, 
+                field,
                 '%', term, '%'
             )
             query_conditions.append(search)
@@ -312,7 +310,7 @@ def _build_where_conditions(where):
             the condition applies to and the second element
             is the condition. the condtions have the form
             options for the condition are '<=', '<', '=',
-            '>', '>=' 
+            '>', '>='
             (ex. [('start_datetime, {'leq': '2018-01-01'})])
 
     Returns

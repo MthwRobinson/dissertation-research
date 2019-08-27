@@ -80,9 +80,11 @@ class DataLoader:
             print('{}/{}'.format(organization, package))
             issues = self.github.get_issues(organization, package)
             for issue in issues[:1000]:
-                value = "{}".format(issue['body'])
-                self.database.update_column(table='issues', item_id=issue['id'],
-                                            column='body', value=value)
+                if issue:
+                    if issue['body']:
+                        value = "{}".format(issue['body'].replace('"',''))
+                        self.database.update_column(table='issues', item_id=issue['id'],
+                                                    column='body', value=value)
 
     def _load_package_issues(self, organization, package):
         """Loads the issues for the specified package into the database."""
