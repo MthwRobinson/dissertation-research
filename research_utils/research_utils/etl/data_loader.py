@@ -64,6 +64,26 @@ class DataLoader:
                                                                            organization)
                 self.logger.warning(msg)
 
+    def load_issue_bodies(self):
+        """We didn't load the body of the issues when we did our initial data load
+        and we need that for topic modeling. Looping back to add that to the
+        database now. We only need issue bodies from the package with networks."""
+        sql = """
+            SELECT DISTINCT organization, package
+            FROM open_source.stakeholder_networks
+        """
+        df = pd.read_sql(sql, self.database.connection)
+
+        for i in df.index:
+            organization = df.loc[i]['organization']
+            package = df.loc[i]['package']
+            print('{}/{}'.format(organization, package))
+            issues = self.github.get_issues(organization, package)
+            for issue in issues[:1000]:
+                value = "{}".format(issue['body'])
+                self.database.update_column(table='issues', item_id=issue['id'],
+                                            column='body', value=value)
+
     def _load_package_issues(self, organization, package):
         """Loads the issues for the specified package into the database."""
         msg = 'Loading issues for {}/{}'.format(organization, package)
