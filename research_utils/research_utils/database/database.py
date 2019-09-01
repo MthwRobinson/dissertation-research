@@ -192,7 +192,10 @@ class Database(object):
                    column=column, item_id=item_id)
 
         with self.connection.cursor() as cursor:
-            cursor.execute(sql, (value,))
+            try:
+                cursor.execute(sql, (value,))
+            except ValueError:
+                self.connection.rollback()
         self.connection.commit()
 
     def read_table(self, table, columns=None, sort=None, order='desc',
