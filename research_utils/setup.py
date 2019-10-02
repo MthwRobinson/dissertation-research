@@ -3,9 +3,11 @@ from setuptools import setup, find_packages
 reqs = [
     'click',
     'daiquiri',
+    'gensim',
     'lifelines',
     'matplotlib',
     'networkx',
+    'nltk',
     'numpy',
     'pandas',
     'psycopg2-binary',
