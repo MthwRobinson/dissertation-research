@@ -16,13 +16,14 @@ from research_utils.database.database import Database
 
 HOME_PATH = os.path.expanduser('~')
 
+daiquiri.setup(level=logging.INFO)
+LOGGER = daiquiri.getLogger(__name__)
+
 class TopicModel:
     """Class for applying and LDA topic model to the issues
     in the GitHub dataset and determining the level of diversity
     in the topics for a given package."""
     def __init__(self, num_topics):
-        daiquiri.setup(level=logging.INFO)
-        self.logger = daiquiri.getLogger(__name__)
 
         self.database = Database()
         self.model_path = os.path.join(HOME_PATH, 'topic_models')
@@ -87,7 +88,7 @@ class TopicModel:
         # the topic list that we write to the database depends
         # array index
         if len(topics) != self.num_topics:
-            self.logger.warning('There is not a score for every topic!')
+            LOGGER.warning('There is not a score for every topic!')
             return None
 
         # Reformat the topic list so that we can upload it to Postgres
@@ -104,7 +105,7 @@ class TopicModel:
         total_issues = len(df)
         for i in df.index:
             if i%50000 == 0:
-                self.logger.info('Computing topic for issue {}/{}'.format(i, total_issues))
+                LOGGER.info('Computing topic for issue {}/{}'.format(i, total_issues))
             row = dict(df.loc[i])
             topic_vector = self.get_topics(row['title'], row['body'])
             topics.append(topic_vector)
@@ -113,21 +114,20 @@ class TopicModel:
     def compute_similarity_matrix(self):
         """Computes a matrix where entry i,j is the consine similarity between
         topic i and topic j."""
+        self.topic_matrix = self.lda_model.get_topics()
         similarity_matrix = []
         for i in range(self.num_topics):
             topic_similarities = []
             for j in range(self.num_topics):
                 topic_similarities.append(self.get_similarity(i, j))
-            similarities.append(topic_similarities)
+            similarity_matrix.append(topic_similarities)
 
         self.similarity_matrix = np.array(similarity_matrix)
 
     def get_similarity(self, i, j):
         """Computes the cosine similarity between two topics in an LDA model.
         Cosine similartiy is computed as 1 - cosine distance."""
-        if not self.topic_matrix:
-            self.topic_matrix = self.lda_model.get_topics()
-        return 1 - cosine(matrix[i, :], matrix[j, :])
+        return 1 - cosine(self.topic_matrix[i, :], self.topic_matrix[j, :])
 
     def load_topics(self, issue_id, topics):
         """Stores the topics for the issue in postgres."""
@@ -137,19 +137,23 @@ class TopicModel:
 
     def load_issue_topics(self, df):
         """Loads issue topics to the database for all issues in the dataframe."""
-        total_issue = len(df)
+        total_issues = len(df)
         for i in df.index:
             if i%50000 == 0:
-                self.logger.info('Loading topic for issue {}/{}'.format(i, total_issues))
+                LOGGER.info('Loading topic for issue {}/{}'.format(i, total_issues))
             row = dict(df.loc[i])
             self.load_topics(row['issue_id'], row['topics'])
 
     def save(self):
         """Saves the model to the model directory."""
-        filename = 'lda_model_{}.pickle'.format(self.num_topics)
-        full_path = os.path.join(self.model_path, filename)
-        with open(filename, 'wb') as f:
-            pickle.dump(self, f)
+        attrs = ['lda_model', 'tfidf', 'dictionary',
+                 'topic_matrix', 'similarity_matrix']
+        for attr in attrs:
+            obj = getattr(self, attr)
+            filename = 'lda_model_{}_{}.pickle'.format(self.num_topics, attr)
+            full_path = os.path.join(self.model_path, filename)
+            with open(filename, 'wb') as f:
+                pickle.dump(obj, f)
 
 
 def _build_dictionary(corpus):
