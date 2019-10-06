@@ -29,7 +29,12 @@ CREATE TABLE IF NOT EXISTS open_source.issues (
   labels text[],
   assignee text,
   assignees text[],
-  pull_request boolean
+  pull_request boolean,
+  topics_10 numeric[],
+  topics_25 numeric[],
+  topics_50 numeric[],
+  topics_100 numeric[],
+  topics_200 numeric[]
 );
 
 CREATE TABLE IF NOT EXISTS open_source.comments (

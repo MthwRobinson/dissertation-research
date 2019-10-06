@@ -1,5 +1,7 @@
 """Module for building topic models from GitHub issue bodies."""
 import logging
+import os
+import pickle
 
 import daiquiri
 import gensim
@@ -12,18 +14,22 @@ from scipy.spatial.distance import cosine
 
 from research_utils.database.database import Database
 
+HOME_PATH = os.path.expanduser('~')
+
 class TopicModel:
     """Class for applying and LDA topic model to the issues
     in the GitHub dataset and determining the level of diversity
     in the topics for a given package."""
-    def __init__(self):
+    def __init__(self, num_topics):
         daiquiri.setup(level=logging.INFO)
         self.logger = daiquiri.getLogger(__name__)
 
         self.database = Database()
+        self.model_path = os.path.join(HOME_PATH, 'topic_models')
 
         # Attributes related to the gensim topic model
         self.lda_model = None
+        self.num_topics = num_topics
         self.tfidf = None
         self.dictionary = None
         self.topic_matrix = None
@@ -41,7 +47,7 @@ class TopicModel:
         df = pd.read_sql(sql, self.database.connection)
         return df
 
-    def train_model(self, df, num_topics=10):
+    def train_model(self, df):
         """Trains an LDA topic model on the issues in the dataframe."""
         # Preprocess the content and convert the issues into bags of words
         # which we can turn into features for topic modeling
@@ -57,7 +63,7 @@ class TopicModel:
 
         self.lda_model = gensim.models.LdaMulticore(corpus=corpus_tfidf,
                                                     id2word=self.dictionary,
-                                                    num_topics=num_topics,
+                                                    num_topics=self.num_topics,
                                                     passes=3,
                                                     workers=3)
 
@@ -75,44 +81,42 @@ class TopicModel:
             topics = self.lda_model.get_document_topics(corpus_tfidf[0],
                                                         minimum_probability=0.0000001)
         else:
-            topics = None
+            return None
 
         # Make sure there is an entry for every topic, because
         # the topic list that we write to the database depends
         # array index
-        num_topics = self.matrix.shape[0]
-        if len(topics) != num_topics:
+        if len(topics) != self.num_topics:
             self.logger.warning('There is not a score for every topic!')
+            return None
 
         # Reformat the topic list so that we can upload it to Postgres
         cleaned_topics = []
         for topic in sorted(topics):
             # The second element of the tuple is the topic score
-            cleaned_topics.append(topic[1])
+            cleaned_topics.append(float(topic[1]))
 
         return cleaned_topics
 
     def get_df_topics(self, df):
         """Computes a topic column for a dataframe of issues."""
         topics = []
+        total_issues = len(df)
         for i in df.index:
+            if i%50000 == 0:
+                self.logger.info('Computing topic for issue {}/{}'.format(i, total_issues))
             row = dict(df.loc[i])
             topic_vector = self.get_topics(row['title'], row['body'])
             topics.append(topic_vector)
-        df['topics'] = topics
-        return df
+        return topics
 
     def compute_similarity_matrix(self):
         """Computes a matrix where entry i,j is the consine similarity between
         topic i and topic j."""
-        if not self.topic_matrix:
-            self.topic_matrix = self.lda_model.get_topics()
-        num_topics = self.topic_matrix.shape[0]
-
         similarity_matrix = []
-        for i in range(num_topics):
+        for i in range(self.num_topics):
             topic_similarities = []
-            for j in range(num_topics):
+            for j in range(self.num_topics):
                 topic_similarities.append(self.get_similarity(i, j))
             similarities.append(topic_similarities)
 
@@ -124,6 +128,29 @@ class TopicModel:
         if not self.topic_matrix:
             self.topic_matrix = self.lda_model.get_topics()
         return 1 - cosine(matrix[i, :], matrix[j, :])
+
+    def load_topics(self, issue_id, topics):
+        """Stores the topics for the issue in postgres."""
+        column = "topics_{}".format(self.num_topics)
+        self.database.update_column(table='issues', item_id=issue_id,
+                                    column=column, value=topics)
+
+    def load_issue_topics(self, df):
+        """Loads issue topics to the database for all issues in the dataframe."""
+        total_issue = len(df)
+        for i in df.index:
+            if i%50000 == 0:
+                self.logger.info('Loading topic for issue {}/{}'.format(i, total_issues))
+            row = dict(df.loc[i])
+            self.load_topics(row['issue_id'], row['topics'])
+
+    def save(self):
+        """Saves the model to the model directory."""
+        filename = 'lda_model_{}.pickle'.format(self.num_topics)
+        full_path = os.path.join(self.model_path, filename)
+        with open(filename, 'wb') as f:
+            pickle.dump(self, f)
+
 
 def _build_dictionary(corpus):
     """Builds a dictionary based on the corpus."""

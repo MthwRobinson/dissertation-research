@@ -7,6 +7,7 @@ import daiquiri
 import pandas as pd
 
 from research_utils.analytics.stakeholder_network import StakeholderNetwork
+from research_utils.analytics.lda import TopicModel
 from research_utils.database.database import Database
 from research_utils.etl.data_loader import DataLoader
 
@@ -63,6 +64,21 @@ def build_networks():
         network.load_network(crowd_pct=row['crowd_pct'])
         network.load_user_centralities()
 main.add_command(build_networks)
+
+@click.command('build-topic-models', help='Builds LDA models to measure issue diversity')
+def build_topic_models():
+    """Builds LDA models that will be used to measure the amount of diversity
+    is the requirements for a GitHub project."""
+    for num_topics in [10, 25, 50, 100, 200]:
+        LOGGER.info('Building topic model with {} topics'.format(num_topics))
+        topic_model = TopicModel(num_topics=num_topics)
+        df = topic_model.get_issues()
+        topic_model.train_model(df)
+        topic_model.compute_similarity_matrix()
+        topic_model.save()
+        df['topics'] = topic_model.get_df_topics(df)
+        topic_model.load_issue_topics(df)
+main.add_command(build_topic_models)
 
 if __name__ == '__main__':
     main()
