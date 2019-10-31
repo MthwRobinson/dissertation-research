@@ -52,3 +52,8 @@ Research Questions and Hypotheses
   Example: `$ research_utils load-networks`
 
   Description: Builds the stakeholder networks, saves a plot of the stakeholder network in the `/img` folder, and computes summary statistics for follow on analysis.
+
+  #### Train Topic Models
+  Example: `$ research_utils build-topic-models`
+
+  Description: Trains LDA topic models based on the GitHub issues in the database and saves them to the `~/topic_models` folder.
