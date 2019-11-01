@@ -276,7 +276,7 @@ def aggregate_topics(issue_topics):
     aggregated_topics = [0 for i in range(len(issue_topics[0]))]
     num_issues = len(issue_topics)
     for topics in issue_topics:
-        for i in range(len(topics)):
-            aggregated_topics[i] += topics[i]
+        idx = topics.index(max(topics))
+        aggregated_topics[idx] += 1
     aggregated_topics = [x/num_issues for x in aggregated_topics]
     return aggregated_topics
