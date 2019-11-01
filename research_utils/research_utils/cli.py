@@ -1,6 +1,7 @@
 """Command line interface for reasearch utils."""
 import datetime
 import logging
+import pickle
 
 import click
 import daiquiri
@@ -77,7 +78,9 @@ def build_topic_models():
         topic_model.compute_similarity_matrix()
         topic_model.save()
         df['topics'] = topic_model.get_df_topics(df)
-        topic_model.load_issue_topics(df)
+        filename = '/home/matt/topic_models/topic_model_results_{}_topics.pickle'.format(num_topics)
+        with open(filename, 'wb') as f:
+            pickle.dump(df, f)
 main.add_command(build_topic_models)
 
 if __name__ == '__main__':

@@ -23,7 +23,7 @@ class TopicModel:
     """Class for applying and LDA topic model to the issues
     in the GitHub dataset and determining the level of diversity
     in the topics for a given package."""
-    def __init__(self, num_topics):
+    def __init__(self, num_topics, load=False):
 
         self.database = Database()
         self.model_path = os.path.join(HOME_PATH, 'topic_models')
@@ -36,6 +36,9 @@ class TopicModel:
         self.topic_matrix = None
         self.similarity_matrix = None
 
+        if load:
+            self.load_model_attributes()
+
     def get_issues(self, sample_size=None):
         """Pulls a list of issues, their titles and their bodies
         from the database."""
@@ -47,6 +50,30 @@ class TopicModel:
             sql += " ORDER BY RANDOM() LIMIT {} ".format(sample_size)
         df = pd.read_sql(sql, self.database.connection)
         return df
+
+    def compute_diversity(self, inputs):
+        """Computes the diversity score for each package in the dataframe.
+
+        Params
+        ------
+        inputs : pd.DataFrame
+            a dataframe with the topic scores and package names
+
+        Returns
+        -------
+        diversity : dict
+            a dictionary that maps org and package names to diversity scores
+        """
+        diversity_scores = {}
+        groups = inputs.groupby(['organization', 'package'])
+        for name, group in groups:
+            organization, package = name
+            topics = list(group['topics'])
+            topics = [x for x in topics if x] # Remove None
+            aggregated_topics = aggregate_topics(topics)
+            diversity = document_diversity(aggregated_topics, self.similarity_matrix)
+            diversity_scores[(organization, package)] = diversity
+        return diversity_scores
 
     def train_model(self, df):
         """Trains an LDA topic model on the issues in the dataframe."""
@@ -152,8 +179,31 @@ class TopicModel:
             obj = getattr(self, attr)
             filename = 'lda_model_{}_{}.pickle'.format(self.num_topics, attr)
             full_path = os.path.join(self.model_path, filename)
-            with open(filename, 'wb') as f:
+            with open(full_path, 'wb') as f:
                 pickle.dump(obj, f)
+
+    def load_model_attributes(self):
+        """Loads a saved model into memory."""
+        attrs = ['lda_model', 'tfidf', 'dictionary',
+                 'topic_matrix', 'similarity_matrix']
+        for attr in attrs:
+            filename = 'lda_model_{}_{}.pickle'.format(self.num_topics, attr)
+            full_path = os.path.join(self.model_path, filename)
+            with open(full_path, 'rb') as f:
+                try:
+                    obj = pickle.load(f)
+                    setattr(self, attr, obj)
+                except FileNotFoundError:
+                    msg = '{} not found for {} topics'.format(att, self.num_topics)
+                    LOGGER.warning(msg)
+
+    def load_topic_model_results(self):
+        """Loads the dataframe with the results for the topic model"""
+        filename = 'topic_model_results_{}_topics.pickle'.format(self.num_topics)
+        full_path = os.path.join(self.model_path, filename)
+        with open(full_path, 'rb') as f:
+            df = pickle.load(f)
+        return df
 
 
 def _build_dictionary(corpus):
@@ -183,3 +233,38 @@ def _preprocess(text):
         if token not in gensim.parsing.preprocessing.STOPWORDS and len(token) > 3:
             result.append(lemmatize_stemming(token))
     return result
+
+def document_diversity(topics, similarity_matrix):
+    """Computes the document diversity score for an individual document.
+    This function uses Rao's diversity measure, which is computed as:
+    div(d) = SUM_{i} SUM_{j} P(i|d) P(j|d) delta(i,j)
+    where delta(i,j) is the distance between between topics i and j."""
+    diversity = 0
+    for i in range(len(topics)):
+        for j in range(len(topics)):
+            diversity += topics[i]*topics[j]*(1-similarity_matrix[i,j])
+    return diversity
+
+def aggregate_topics(issue_topics):
+    """Aggregates the topics across all of the issues in a package.
+    The intent is to compute the probability that you observe a topic,
+    given that you select a random issue from that package.
+
+    Parameters
+    ----------
+    issue_topics : list
+        a list of lists that contain the topics for each issue in a package
+
+    Returns
+    -------
+    aggregated_topics : list
+        an aggregation of the topics across all of the issues for the package
+
+    """
+    aggregated_topics = [0 for i in range(len(issue_topics[0]))]
+    num_issues = len(issue_topics)
+    for topics in issue_topics:
+        for i in range(len(topics)):
+            aggregated_topics[i] += topics[i]
+    aggregated_topics = [x/num_issues for x in aggregated_topics]
+    return aggregated_topics
