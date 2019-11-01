@@ -162,6 +162,18 @@ class TopicModel:
         self.database.update_column(table='issues', item_id=issue_id,
                                     column=column, value=topics)
 
+    def load_document_diversity(self, diversity_scores):
+        """Loads the document diversity score for each package into the database."""
+        for key in diversity_scores:
+            organization, package = key
+            diversity = diversity_scores[key]
+            sql = """
+                UPDATE open_source.packages
+                SET diversity_{} = {}
+                WHERE org_name = '{}' and package_name = '{}'
+            """.format(self.num_topics, diversity, organization, package)
+            self.database.run_query(sql)
+
     def load_issue_topics(self, df):
         """Loads issue topics to the database for all issues in the dataframe."""
         total_issues = len(df)
