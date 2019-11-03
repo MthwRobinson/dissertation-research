@@ -69,10 +69,14 @@ class TopicModel:
         for name, group in groups:
             organization, package = name
             topics = list(group['topics'])
-            topics = [x for x in topics if x] # Remove None
-            aggregated_topics = aggregate_topics(topics)
-            diversity = document_diversity(aggregated_topics, self.similarity_matrix)
-            diversity_scores[(organization, package)] = diversity
+            topics = np.array([x for x in topics if x]) # Remove None
+            num_issues = len(topics)
+            diversity = []
+            for i in np.random.choice(range(num_issues), 20, replace=False):
+                for j in np.random.choice(range(num_issues), 20, replace=False):
+                    # diversity.append(cosine(topics[i],  topics[j]))
+                    diversity.append(soft_cosine(topics[i], topics[j], self.similarity_matrix))
+            diversity_scores[(organization, package)] = np.mean(diversity)
         return diversity_scores
 
     def train_model(self, df):
@@ -245,6 +249,75 @@ def _preprocess(text):
         if token not in gensim.parsing.preprocessing.STOPWORDS and len(token) > 3:
             result.append(lemmatize_stemming(token))
     return result
+
+def soft_cosine(vector_a, vector_b, similarity_matrix):
+    """Computes the soft cosine distance between two vectors. The soft cosine
+    distance takes into account the distance between two topic.
+
+    Parameters
+    ----------
+    vector_a : numpy.array
+        the first vector to compare
+    vector_b : numpy.array
+        the second vector to compare
+    similarity_matrix : numpy.matrix
+        an nxn matrics where entry i,j is the similarity between topic i and j
+
+    Returns
+    -------
+    soft_cosine_distance : float
+        the soft cosine distance between vector_a and vector_b
+    """
+    magnitude_a = soft_magnitude(vector_a, similarity_matrix)
+    magnitude_b = soft_magnitude(vector_b, similarity_matrix)
+    dot_product = soft_dot_product(vector_a, vector_b, similarity_matrix)
+    return 1 - (dot_product / (magnitude_a * magnitude_b))
+
+def soft_magnitude(vector, similarity_matrix):
+    """Computes the magnitude of the vector, weighted by topic similarity.
+
+    Parameters
+    ----------
+    vector : numpy.array
+        the vector whose magnitude we would like to compute
+    similarity_matrix : numpy.matrix
+        an nxn matrics where entry i,j is the similarity between topic i and j
+
+    Returns
+    -------
+    magnitude : the magnitude of the vector
+    """
+    magnitude = 0
+    size = len(vector)
+    for i in range(size):
+        for j in range(size):
+            magnitude += similarity_matrix[i,j] * vector[i] * vector[j]
+    return np.sqrt(magnitude)
+
+def soft_dot_product(vector_a, vector_b, similarity_matrix):
+    """Computes a soft dot product between two vectors, weighted
+    by topic similarity
+
+    Parameters
+    ----------
+    vector_a : numpy.array
+        the first vector to compare
+    vector_b : numpy.array
+        the second vector to compare
+    similarity_matrix : numpy.matrix
+        an nxn matrics where entry i,j is the similarity between topic i and j
+
+    Returns
+    -------
+    dot_product : float
+        the soft dot product of vector_a and vector_b
+    """
+    dot_product = 0
+    size = len(vector_a)
+    for i in range(size):
+        for j in range(size):
+            dot_product += similarity_matrix[i,j] * vector_a[i] * vector_b[j]
+    return dot_product
 
 def document_diversity(topics, similarity_matrix):
     """Computes the document diversity score for an individual document.
