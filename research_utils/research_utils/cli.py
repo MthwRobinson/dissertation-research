@@ -86,7 +86,7 @@ main.add_command(build_topic_models)
 @click.command('compute-document-diversity')
 def compute_document_diversity():
     """Computes document diversity for the packages based on the LDA models."""
-    for num_topics in [10, 25]:
+    for num_topics in [10, 25, 50]:
         LOGGER.info('Loading doc diversity for {} topics'.format(num_topics))
         topic_model = TopicModel(num_topics=num_topics, load=True)
         inputs = topic_model.load_topic_model_results()
