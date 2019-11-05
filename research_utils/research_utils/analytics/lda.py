@@ -72,8 +72,8 @@ class TopicModel:
             topics = np.array([x for x in topics if x]) # Remove None
             num_issues = len(topics)
             diversity = []
-            for i in np.random.choice(range(num_issues), 20, replace=False):
-                for j in np.random.choice(range(num_issues), 20, replace=False):
+            for i in np.random.choice(range(num_issues), min(40, num_issues), replace=False):
+                for j in np.random.choice(range(num_issues), min(40, num_issues), replace=False):
                     # diversity.append(cosine(topics[i],  topics[j]))
                     diversity.append(soft_cosine(topics[i], topics[j], self.similarity_matrix))
             diversity_scores[(organization, package)] = np.mean(diversity)
