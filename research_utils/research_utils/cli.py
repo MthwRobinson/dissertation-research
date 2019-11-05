@@ -1,6 +1,7 @@
 """Command line interface for reasearch utils."""
 import datetime
 import logging
+import os
 import pickle
 
 import click
@@ -93,6 +94,44 @@ def compute_document_diversity():
         diversity_scores = topic_model.compute_diversity(inputs)
         topic_model.load_document_diversity(diversity_scores)
 main.add_command(compute_document_diversity)
+
+@click.command('add-network-types')
+def add_network_types():
+    database = Database()
+    sql = """SELECT org_name, package_name
+             FROM open_source.packages"""
+    df = pd.read_sql(sql, database.connection)
+
+    update_sql = """
+        UPDATE open_source.packages
+        SET {} = 1
+        WHERE org_name = '{}' and package_name = '{}'
+    """
+
+    directory = "/home/matt/img/"
+    distributed = os.listdir(directory + 'distributed')
+    multiple_centers = os.listdir(directory + 'multiple_centers')
+    other = os.listdir(directory + 'other')
+    one_center = os.listdir(directory + 'one_center')
+    two_centers = os.listdir(directory + 'two_centers')
+
+    network_types = {
+        'distributed': distributed,
+        'multiple_centers': multiple_centers,
+        'other': other,
+        'one_center': one_center,
+        'two_centers': two_centers
+    }
+
+    for i in df.index:
+        org = df.loc[i]['org_name']
+        package = df.loc[i]['package_name']
+        filename = 'network-{}-{}.png'.format(org, package)
+        for key in network_types:
+            if filename in network_types[key]:
+                sql = update_sql.format(key, org, package)
+                database.run_query(sql)
+main.add_command(add_network_types)
 
 if __name__ == '__main__':
     main()
