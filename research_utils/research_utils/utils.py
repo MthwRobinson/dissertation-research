@@ -91,18 +91,21 @@ def select_features(X, y, threshold, model_type='ols'):
 
 INPUT_QUERY = """
 SELECT a.package_id, a.package, a.organization,
-       a.duration_median, a.duration_mean, a.duration_variance, a.project_age,
+       a.duration_median, a.duration_mean, a.duration_variance, a.project_age, a.under_30, a.under_60, a.under_90,
        b.crowd_pct, b.crowd, b.total as total_issues,
        c.gini_coefficient, c.avg_clustering, c.avg_min_path,
        d.total_contributors, e.diversity_10, e.diversity_25, e.diversity_50, e.diversity_100,
        e.distributed, e.one_center, e.two_centers, e.multiple_centers, e.other,
-       f.avg_comments
+       f.avg_comments, f.avg_first_comment
 FROM(
     SELECT package_id, package, organization,
            PERCENTILE_DISC(0.5) WITHIN GROUP (ORDER BY duration) AS duration_median,
            AVG(duration) AS duration_mean,
            VARIANCE(duration) AS duration_variance,
-           EXTRACT(DAY FROM NOW() - MIN(created_at)) AS project_age
+           EXTRACT(DAY FROM NOW() - MIN(created_at)) AS project_age,
+           SUM(CASE WHEN duration < 30 THEN 1 ELSE 0 END) as under_30,
+           SUM(CASE WHEN duration < 60 THEN 1 ELSE 0 END) as under_60,
+           SUM(CASE WHEN duration < 90 THEN 1 ELSE 0 END) as under_90
     FROM(
         SELECT package_id, organization, package, created_at,
                EXTRACT(DAY FROM closed_at - created_at) as duration
@@ -136,9 +139,11 @@ ON a.package_id = d.package_id
 INNER JOIN open_source.packages e
 ON a.package_id = e.id
 INNER JOIN (
-    SELECT AVG(num_comments) as avg_comments, package, organization
+    SELECT AVG(num_comments) as avg_comments, AVG(first_comment_time) as avg_first_comment,
+           package, organization
     FROM (
-        SELECT COUNT(DISTINCT comment_id) as num_comments, issue_id, package, organization
+        SELECT COUNT(DISTINCT comment_id) as num_comments, issue_id, package, organization,
+               EXTRACT(DAY FROM MIN(comment_time) - MAX(issue_time)) AS first_comment_time
         FROM open_source.issue_comments
         GROUP BY issue_id, package, organization
     ) x
