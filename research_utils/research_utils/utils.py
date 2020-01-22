@@ -96,7 +96,7 @@ SELECT a.package_id, a.package, a.organization,
        c.gini_coefficient, c.avg_clustering, c.avg_min_path,
        d.total_contributors, e.diversity_10, e.diversity_25, e.diversity_50, e.diversity_100,
        e.distributed, e.one_center, e.two_centers, e.multiple_centers, e.other,
-       f.avg_comments, f.avg_first_comment
+       f.avg_comments, f.avg_first_comment, f.avg_active_time
 FROM(
     SELECT package_id, package, organization,
            PERCENTILE_DISC(0.5) WITHIN GROUP (ORDER BY duration) AS duration_median,
@@ -140,11 +140,14 @@ ON a.package_id = d.package_id
 INNER JOIN open_source.packages e
 ON a.package_id = e.id
 INNER JOIN (
-    SELECT AVG(num_comments) as avg_comments, AVG(first_comment_time) as avg_first_comment,
+    SELECT AVG(num_comments) as avg_comments,
+           AVG(first_comment_time) as avg_first_comment,
+           AVG(active_time) as avg_active_time,
            package, organization
     FROM (
         SELECT COUNT(DISTINCT comment_id) as num_comments, issue_id, package, organization,
-               EXTRACT(DAY FROM MIN(comment_time) - MAX(issue_time)) AS first_comment_time
+               EXTRACT(DAY FROM MIN(comment_time) - MAX(issue_time)) AS first_comment_time,
+               EXTRACT(DAY FROM MAX(comment_time) - MIN(comment_time)) AS active_time
         FROM open_source.issue_comments
         GROUP BY issue_id, package, organization
     ) x
