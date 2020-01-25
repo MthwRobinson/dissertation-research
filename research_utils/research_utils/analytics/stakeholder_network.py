@@ -1,5 +1,6 @@
 """Class for constructing stakeholder networks, producing analytics
 and storing plots."""
+from functools import lru_cache
 import itertools
 import logging
 import os
@@ -29,9 +30,9 @@ class StakeholderNetwork:
         self.package = package
         self.network = self.build_network()
         self.gini = self.compute_gini()
+        self.max_gini = self.compute_max_gini()
         self.avg_min_path = self.compute_avg_min_path()
         self.avg_clustering = self.compute_avg_clustering()
-        self.ks_pval = self.scale_free_test()
         self.betweenness_centrality = betweenness_centrality(self.network,
                                                              normalized=True)
 
@@ -56,6 +57,7 @@ class StakeholderNetwork:
             pairs = itertools.combinations(users, 2)
             for pair in pairs:
                 network.add_edge(*pair)
+        network.remove_nodes_from(nx.isolates(network))
         return network
 
     def compute_gini(self):
@@ -63,6 +65,16 @@ class StakeholderNetwork:
         if self.network:
             degrees = [self.network.degree(x) for x in self.network.nodes]
             gini_coefficient = gini(degrees)
+        else:
+            gini_coefficient = None
+        return gini_coefficient
+
+    def compute_max_gini(self):
+        """Computes the maximum possible gini coefficient for
+        the network."""
+        if self.network:
+            n = len(self.network.nodes)
+            gini_coefficient = max_gini(n)
         else:
             gini_coefficient = None
         return gini_coefficient
@@ -84,26 +96,17 @@ class StakeholderNetwork:
         else:
             return None
 
-    def scale_free_test(self):
-        """Conducts a KS test to see if the network is scale free."""
-        if self.network:
-            degrees = [self.network.degree(x) for x in self.network.nodes]
-            params = stats.pareto.fit(degrees)
-            pvalue = stats.kstest(degrees, 'pareto', args=params).pvalue
-        else:
-            pvalue = None
-        return pvalue
-
     def load_network(self, crowd_pct):
         """Loads the network into the database."""
         item = {
             'organization': self.organization,
             'package': self.package,
             'gini_coefficient': self.gini,
+            'max_gini': self.max_gini,
             'avg_clustering': self.avg_clustering,
             'avg_min_path': self.avg_min_path,
-            'ks_pval': self.ks_pval,
             'crowd_pct': crowd_pct,
+            'nodes': len(self.network.nodes),
             'stakeholder_network': pickle.dumps(self.network)
         }
         self.database.load_item(item, 'stakeholder_networks')
@@ -163,6 +166,18 @@ def gini(x):
     # Gini coefficient
     g = 0.5 * rmad
     return g
+
+@lru_cache()
+def max_gini(n):
+    """Computes the maximum gini coefficient for a graph with n nodes."""
+    max_gini = 0
+    degrees = [1 for i in range(n)]
+    for i in range(n):
+        degrees[i] = n - 1
+        new_gini = gini(degrees)
+        if new_gini > max_gini:
+            max_gini = new_gini
+    return max_gini
 
 def biggest_subgraph(network):
     """Finds the biggest fully connected subgraph in the network."""
