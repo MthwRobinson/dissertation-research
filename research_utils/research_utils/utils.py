@@ -124,7 +124,6 @@ def calc_total_effect(all_data, res, X, crowd_pct=None, avg_clustering=None,
     effects_data['avg_min_pathXcrowd_pct'] = effects_data['crowd_pct'] * effects_data['avg_min_path']
     effects_data['gini_coefficientXcrowd_pct'] = effects_data['crowd_pct'] * effects_data['gini_coefficient']
 
-
     params = {}
     param_vars = ['crowd_pct', 'crowd_pct_2', 'avg_clusteringXcrowd_pct',
                   'avg_min_pathXcrowd_pct', 'gini_coefficientXcrowd_pct']
