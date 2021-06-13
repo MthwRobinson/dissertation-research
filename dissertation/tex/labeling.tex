@@ -1,0 +1,216 @@
+\doublespacing
+\chapter{Automated Requirement Labeling} \label{chap:labeling}
+
+\section{Introduction}
+\label{intro}
+
+One shortcoming of the data set used for the results in Chapter \ref{chap:results} is that, in order to exclude issues unrelated to software requirements, the experiment only considered issues with certain labels, such as "bug" and "feature request". Since some OSS projects use different labeling conventions and some do not use labels all together, this means the data set excluded potentially valuable data. This follow on experiment proposes a transfer learning modeling that allows project managers to train a model to apply new OSS issue labels with as few as 25 labeled training examples. This will enable future researchers to build stakeholder networks for a wider range of OSS projects by automatically detecting the appropriate issues in OSS projects that do not use the standard GitHub issue labeling schema.
+
+The strategy is to first train a text-to-text Bidirectional and Auto-Regressive Transformer (BART) model to abstractively generate issue tags using 40,312 examples from GitHub, then fine-tune the model to recognize a new tag using a small number of additional examples. After the initial training run, the BART model achieved a 79\% F1 score for feature request identification compared a 66\% F1 score for the best traditional ML model, while also learning to recognize bugs, questions, and discussions. With only 25 additional training examples, the BART model learned to apply a previously unseen tag---performance problems---with 63\% precision and 82\% recall compared to 81\% precision and 83\% recall with 400 training examples. The results establish that (1) transformer models outperform traditional ML models for issue labeling tasks and (2) abstractive models can learn new labels with very little training data, reducing the amount of data labeling required to train ML models for CrowdRE tasks.
+
+\section{Background}
+\label{litreview}
+
+This research lies at the intersection of two fields: natural language processing (NLP) and requirements engineering (RE). The literature review will first cover recent advances in the field of NLP, with a special focus on transformer models, which are the basis of the modeling approach in this paper. After presenting the NLP literature, the review will cover past efforts to apply NLP to RE, both within CrowdRE and more broadly. This research contributes to the literature by establishing that transformer models achieve superior performance for feature request identification and demonstrating that transfer learning provides a data efficient means for learning new labels.
+
+\subsection{Transformer Models}
+\label{xformer}
+
+Vaswani, et. al.~\cite{vaswani} first introduced transformer models in 2017 as an alternative to recurrent neural networks (RNNs). Over the past several years, transformer models have achieved state-of-the-art results across a wide range of natural language processing (NLP) tasks, including named entity recognition (NER)~\cite{yamada} and and machine translation~\cite{edunov}. While recent research has produced many variations of transformers, the most frequently cited include Generative Pre-trained Transformers (GPT)~\cite{gpt}, Bidirectional Encoder Representations from Transformers (BERT)~\cite{bert}, BART~\cite{bart}, and XLNet~\cite{xlnet}.
+
+While a fulsome discussion of transformer architectures falls outside the scope of this paper, several points merit discussion. First, unlike traditional ML models, which train from the onset for a specific task, transformer models pre-train on a vast corpus of text by either filling in masked words~\cite{bert, xlnet} or predicting the next word in a sequence~\cite{bart, gpt}. After pre-training, modelers add fine-tuning layers to tailor the language model to a specific task. Due to pre-training, transformer models start with greater awareness of linguistic patterns than classical ML methods and also understand sequences of words. Second, whereas classical ML methods target a vector of binary decision variables for classification tasks, transformer models can also target text output. For example, when training for feature request identification, a classical model takes text as input and outputs $1$ for feature requests and $0$ for anything else. With the right output layer, a transformer model can target the same vector. However, the architecture also allows models to target a text description of the input, such as "feature request" or "question". That latter text-to-text task is more general and facilitates more effective transfer learning~\cite{pan}. The experiment demonstrates that a BART model trained for feature request identification can reliably learn new issue labels after seeing a small number of training examples.
+
+\subsection{NLP in RE}
+In 2019, Santos, Groen, and Villela~\cite{santos} conducted a systematic literature review on the use of NLP for CrowdRE. Their review specifically focused on NLP methods for identifying feature requests within a large corpus of user feedback. Out of 43 papers that attempted this task, over 80\% employed traditional machine learning (ML) classification and text vectorization techniques, with most of the remainder implementing rules-based heuristics. The classical ML approaches include Naive Bayes, Bayesian Networks, Logistic Regression, k-Nearest Neighbors (KNN), Support Vector Machines (SVMs), and various types of decision trees. The most common vectorization approaches were term frequency-inverse document frequency (TFIDF) and bag-of-words (BOW). While one paper tested the performance of neural networks for feature request identification, that paper did not employ either a transformer or an RNN architecture. Although the study compared results and found some differences in performance, the wide variety of training and evaluation data made it difficult to directly compare the performance of competing methods.
+
+Separate from feedback classification, CrowdRE researchers have used NLP to route and assign requirements. Mobasher and Cleland-Huang~\cite{mobasher}, for example, designed a collaborative filtering algorithm to recommend the appropriate implementer for a given requirement. Lim and Finkelstein~\cite{stakerare} pioneered a similar recommendation engine that also incorporates the relative position of project contributors within a social network graph. While these techniques consider the content of requirements, they differ from pure NLP tasks in that they also account for project contributor feedback and activity.  
+
+Although modern neural network architectures have yet to make inroads in CrowdRE, researchers within requirements engineering (RE) more broadly have used them for a variety of extraction and classification tasks. Winkler and Vogelsang~\cite{winkler} trained a convolutional neural network (CNN) capable of differentiating between requirements and informational statements in software specifications. Separately, Sainani, Anish, Joshi, and Ghaisas~\cite{sainani} trained BERT to identify and classify requirements within contracts. Working with a data set of around 4,000 examples, their model applied one of fourteen labels to each requirement and achieved an F1 score of greater than 85\% for most of the labels. A related paper by Chatterjee, Ahmed, and Anish~\cite{chatterjee} uses long short term memory (LSTM) models to identify architecturally significant functional requirements. While similar to feature request identification for CrowdRE, these tasks differ in that they deal with formal requirements, which follow regular patterns of construction and use relatively constrained language. Therefore, while they build confidence in the efficacy of neural networks for RE tasks more broadly, they do not directly address the needs of CrowdRE practitioners.
+
+\subsection{Research Contribution}
+
+This technique for automated issue labeling makes both practical and scientific contributions. First, from a scientific perspective, this technique will enable future researchers to apply tags to issues from OSS projects that do not use the standard GitHub issue labeling schema. Thus, future researchers performing exploring stakeholder networks for OSS projects will have access to more expansive data sets. Second, this experiment establishes the effectiveness of language models for mining user feedback. This is an important contribution because language models train on general text, such as news. Since the language patterns in user feedback differs from general narrative text, establishing the effectiveness of transformer models for CrowdRE tasks requires rigorous benchmarking. Third, this experiment demonstrates that transformer-based text-to-text models outperform classical ML methods for feature request identification, even though they are trained on a more general task. Moreover, this experiment shows that, through transfer learning, text-to-text transformer models can learn previously unseen labels after observing only a handful of examples. Fourth, this study compares the performance of both BART and classical ML methods on the feature request identification task using a common data set. During their literature review of NLP for CrowdRE, Santos, Groen, and Villela~\cite{santos} noted the lack of benchmarking on a common data set as an impediment to comparing the relative performance of different modeling techniques. The training, test, and validation data sets are posted online and freely available for use in future research. From a practical perspective, CrowdRE practitioners can apply and extend the model trained for this experiment in support of their own CrowdRE needs. Moreover, the results of this research show that project mangers can take advantage of ML for CrowdRE tasks with only a minor investment in data labeling.
+
+\section{Methodology}
+
+\subsection{Data Set}
+
+Two separate data sets were constructed for model training from the same set of GitHub issues described in Section \ref{data_set_section}: a large corpus of issues with "feature request", "bug", "question", "documentation", "dependencies", "discussion", and "support" tags and a smaller corpus of issues with "performance" tags. The data set intentionally excludes tags that assume additional context about a project beyond the text of an issue, such as "good first issue" and "won't fix". The larger data set provides the initial training for the feature request identification task, and the smaller data serves as the basis for transfer learning. The training data includes the title of the issue but removes multiline code blocks. Multiline code blocks disrupt the narrative flow of an issue, making it more difficult for a language model to process. Table \ref{data_examples} shows example titles and labels from the data set.
+
+\begin{table}
+\caption{Example titles and targets from the data set.}
+\label{data_examples}
+\begin{tabular}{ll}
+\hline\noalign{\smallskip}
+Title & Label \\
+\noalign{\smallskip}\hline\noalign{\smallskip}
+Create shorthand for adding RampedValue &   feature \\
+Mapping config should be transitive  &   feature \\
+New modal does not set the proper content-type &       bug \\
+Is glog supported for ANDROID?  &  question \\
+How to get the post request body?  &  question \\
+Clear error message for missing qualifier.  &   feature \\
+How to serve static files in a directory  &  question \\
+Possible to specify multiple properies file? &  question \\
+Disabling CH does not work after dropwizard command &       bug \\
+Regex on riot.mount()  &   feature \\
+Post/Pre processing and load hooks  &   feature \\
+Creating an IntervalCollection of ValueInterval &  question \\
+Make use of JSR 353 (JSON Processing) API  &   feature \\
+Assimp\_view is crashing   &       bug \\
+Some honest thoughts on the changes of v2 to v3 & discussion \\
+\noalign{\smallskip}\hline
+\end{tabular}
+\end{table}
+
+\begin{figure*}
+  \includegraphics[width=0.95\textwidth]{img/feature_dataset.png}
+\caption{Distribution of labels in the feature request identification data set.}
+\label{feature_dataset}
+\end{figure*}
+
+The larger data set includes 40,312 issues in the training set, 5,333 in the validation set, and 5,176 in the test set, while the smaller data set has 400 issues in the training set and 355 in the test set. Figures \ref{feature_dataset} and \ref{performance_dataset} show the distribution of issue labels in each of the data sets. To maintain independence between the training, test, and validation sets, a process randomly assigns all of the issues from each OSS project to one of the three sets. Including issues from the same project in both the training and test sets would overestimate model performance because issues from the same project tend to use common conventions. The training script uses examples from the validation set for hyperparameter tuning. Models only see the test data during performance benchmarking.
+
+\begin{figure*}
+  \includegraphics[width=0.95\textwidth]{img/performance_dataset.png}
+\caption{Distribution of labels in the performance problem identification data set.}
+\label{performance_dataset}
+\end{figure*}
+
+\subsection{Model Training and Evaluation}
+
+Models trained for the feature request identification task include a text-to-text BART model, as well as several classical ML models based on the classification and vectorization techniques Santos, et. al.~\cite{santos} discuss in their literature review. This study evaluates random forests (RF), logistic regression (LR), naive Bayes (NB) classifiers, and support vector machines (SVM) for classification combined with term frequency-inverse document frequency (TF-IDF) and bag-of-words (BOW) for vectorization. The classical ML models use an input matrix formed by vectorizing the text of the issue using TFIDF or BOW, and a target vector built by assigning the value $1$ to issues labeled as a feature requests, and $0$ to all other issues. The BART model takes the title and text of the issue as input, and targets the text of the issue label as output. For model evaluation, the text output of the BART model is represented as a binary vector to (1) support direct comparison with the classical ML methods and (2) support the computation of classification performance metrics.
+
+For the second task---identifying performance problems---the BART model employs transfer learning by adding a new training layer to feature request identification model. The transfer learning models use 25, 200, and 400 examples. Training data for the performance problem identification model includes GitHub issues with a "performance" tag, which did not appear in the original data set for feature request identification. Since classical ML models do not support the same type of layered transfer learning, these models were retrained from scratch on the 400 example data set. Each model uses the same set of test examples, regardless of training strategy.
+
+Performance benchmarking uses four different metrics: accuracy, precision, recall, and F1 score. Accuracy~\cite{friedman} measures the number of correct predictions over the number of total predictions. Precision~\cite{friedman} measures the number of correct predictions over the number of positive predictions. Recall~\cite{friedman} measures the number of positive predictions over the total number of true positives. F1 score~\cite{friedman} is the harmonic mean of precision and recall and provides a balanced measure of performance. To test the robustness of the relative performance of the models, these metrics are computed on 100 random subsamples consisting of 250 issues from the test data set. Ideally, it would be preferable train and evaluate the model on a number of random training/test splits. However, the long training time for the BART model makes this approach infeasible. At a minimum, bootstrap evaluation over the test data provides assurances that model performance remains reasonably stable over a range of test cases.
+
+\section{Results}
+
+\subsection{Feature Request Identification}
+
+For the first experiment, involved training a range of models on the 40,312 sample feature request identification training set and evaluated them on the 5,176 sample test set. The evaluation considers two sets of models: the BART abstractive summarization model and the most common classicial ML models referenced in the NLP for CrowdRE literature review by Santos, et. al.~\cite{santos}. 
+
+A BART large model~\cite{bart} fine-tuned for text-to-text summarization on the CNN/DailyModel news summarization data set~\cite{cnn} provides a baseline for the feature request identification model. During model training, the BART model took the title and text of a GitHub issue as input, and targeted the text description of the issue label as output. Training for the BART model took approximately 18 hours on a system with 8 CPU cores and 32 GB of RAM. The training run used batch sizes of four and trained on a single epoch, which is a single pass through the entire data set. During evaluation, the BART summaries included a maximum of six BART tokens~\cite{bart} resulting in one word labels. Effectively, this means the BART model chose the highest confidence label description for each issue.
+
+In contrast to the BART model, which directly outputs a label description, the classical ML models vectorize the title and text of the GitHub issue using either BOW or TF-IDF and outputs a binary vector, where $1$ represents a feature request and $0$ represents any other topic label. The length of the training runs for the classical ML models ranged from less than five minutes for the random forest, logistic regression, and naive Bayes models to approximately 15 minutes for SVM model using the same hardware as the BART model. 
+
+The results of the evaluation on the test set appear in Table \ref{feature_request_results}. The BART model meets or exceeds the performance of the classical ML models across each of the four performance metrics: accuracy, precision, recall, and F1. While many of the classical ML models approach the same precision as the BART model, with the RF/TF-IDF model slightly outperforming it, the BART model achieves superior recall, resulting in much higher F1 and accuracy scores. Computing the F1-score on 100 random 250 sample draws of the test data set helps to test the robustness of the results. For select models, the results of this bootstrap evaluation process appear in Figure \ref{f1_distribution}. Figure \ref{f1_distribution} does not include all of the models because the performance of several of the classical ML models substantially overlap, making the chart difficult to read. The histograms show that the BART model systematically outperforms the classical ML models, with the best performance for the top performing classical model only slightly overlapping with the worst performance for BART. On a pair-wise basis, none of the classical models outperformed BART with respect to F1 score on any of the draws.  
+
+\begin{table}
+\caption{Model Performance on Feature Request Identification}
+\label{feature_request_results}
+\begin{tabular}{lllll}
+\hline\noalign{\smallskip}
+Model & Accuracy & Precision & Recall & F1-Score  \\
+\noalign{\smallskip}\hline\noalign{\smallskip}
+BART & 0.83 & 0.82 & 0.75 & 0.79 \\
+RF / TFIDF  & 0.73 & 0.84 & 0.39 & 0.53 \\
+RF / BOW  & 0.72 & 0.82 & 0.37 & 0.51 \\
+LR / TFIDF & 0.76 & 0.76 & 0.59 & 0.66 \\
+LR / BOW & 0.73 & 0.68 & 0.61 & 0.64 \\
+NB / TFIDF & 0.75 & 0.70 & 0.63 & 0.66 \\
+NB / BOW & 0.75 &  0.70 & 0.63 & 0.66 \\
+SVM / TFIDF & 0.77 & 0.77 & 0.60 & 0.67 \\
+SVM / BOW & 0.77 & 0.78 & 0.57 & 0.66 \\
+\noalign{\smallskip}\hline
+\end{tabular}
+\end{table}
+
+\begin{figure*}
+  \includegraphics[width=0.95\textwidth]{img/f1_distribution.png}
+\caption{Distribution of F1 scores for the feature request identification task.}
+\label{f1_distribution}
+\end{figure*}
+
+Figure \ref{confusion_features} shows the confusion matrix for the BART model on the most common tags in the data set. In addition to performing well for feature identification, BART also performs well on the more general tag description generation task. The model has relatively even performance across all labels. The model most commonly confused bugs and feature requests. Note, to make the figure more readable, the confusion matrix only includes the three most common labels.
+
+\begin{figure*}
+  \includegraphics[width=0.95\textwidth]{img/confusion_matrix_features.png}
+\caption{BART confusion matrix for feature request identification.}
+\label{confusion_features}
+\end{figure*}
+
+\subsection{Transfer Learning for Performance Problem Identification}
+
+After training and evaluating the models on feature request identification, evaluationa utilized the much smaller performance problem data set, which has 400 training examples and 355 test examples. Training for the classical ML models followed the same pattern as before, with the exception that the models target performance problems instead of feature requests. For BART, the starting point was the fine-tuned feature request identification model, which underwent further fine-tuned the model using the performance problem data set. This process, known as transfer learning, enables the model to take advantage of patterns it has already learned about GitHub issues more generally, making it possible to learn new patters specific to performance problem identification with fewer training examples. Classical ML models do not support this style of transfer learning. The BART model was evaluated on 25, 200, and 400 training examples. Each of the classical models trained on the full 400 example training set. Training time for the BART models ranged from 2-5 hours, compared to less than 2 minutes for each of the classical ML models.
+
+Model performance on the performance problem task appear in Table \ref{performance_results}. Whereas the classical ML models performed reasonably well for feature identification after training on 40,312 examples, with 400 training examples they perform extremely poorly. In a few cases, the classical ML models perform worse than random guessing. With 400 examples, the classical models simply do not having enough training data to learn the task effectively. 
+
+\begin{table}
+\caption{Model Performance on Performance Problem Identification}
+\label{performance_results}
+\begin{tabular}{lllll}
+\hline\noalign{\smallskip}
+Model & Accuracy & Precision & Recall & F1-Score  \\
+\noalign{\smallskip}\hline\noalign{\smallskip}
+BART (400 examples) & 0.89 & 0.81 & 0.83 & 0.82 \\
+BART (200 examples) & 0.87 & 0.70 & 0.93 & 0.80 \\
+BART (25 examples) & 0.82 & 0.63 & 0.82 & 0.71 \\
+RF / TFIDF  & 0.58 & 0.25 & 0.28 & 0.27 \\
+RF / BOW  & 0.59 & 0.23 & 0.20 & 0.22 \\
+LR / TFIDF & 0.49 & 0.16 & 0.20 & 0.18 \\
+LR / BOW & 0.60 & 0.30 & 0.34 & 0.32 \\
+NB / TFIDF & 0.16 & 0.08 & 0.20 & 0.12 \\
+NB / BOW & 0.16 &  0.08 & 0.20 & 0.12 \\
+SVM / TFIDF & 0.50 & 0.13 & 0.15 & 0.14 \\
+SVM / BOW & 0.62 & 0.33 & 0.33 & 0.33 \\
+\noalign{\smallskip}\hline
+\end{tabular}
+\end{table}
+
+By contrast, the fine-tuned BART models performed very well. With 400 examples, the BART model achieved stronger performance on the performance problem identification than it did for feature request identification, whereas the classical ML performed much worse. More strikingly, the performance of the BART model degraded only slightly when after decreasing the number of training examples. Figure \ref{fewshot_performance} shows how model performance changed with the number of training examples. While precision fell with fewer training examples, the recall of the 25 example BART model matched the recall of the 400 example model. As indicated in the table, BART achieved 63\% precision and 82\% recall for performance problem identification, compared to 81\% precision and 83\% recall with 400 training examples.
+
+\begin{figure*}
+  \includegraphics[width=0.95\textwidth]{img/fewshot_performance.png}
+\caption{Few-shot model performance for the performance problem identification task.}
+\label{fewshot_performance}
+\end{figure*}
+
+Figure \ref{confusion_performance} shows the confusion matrix on the performance problem identification task for the 25 example BART model. While less evenly distributed than the performance for the feature request model trained on 40,312 examples, the confusion matrix demonstrates the effectiveness of the few shot model. While the model sometimes mistook feature requests for performance problems, the model performed reasonably well on all target labels. Moreover, the confusion matrix shows that, in addition to learning a new label, the model retains the ability to detect labels from the original data set. The ability to teach BART a new label with as few as 25 examples means project managers can retrofit an existing model for a new CrowdRE task without diverting significant resources to data labeling.
+
+\begin{figure*}
+  \includegraphics[width=0.95\textwidth]{img/confusion_matrix_performance.png}
+\caption{BART confusion matrix for performance problem identification with 25 training examples.}
+\label{confusion_performance}
+\end{figure*}
+
+\section{Conclusion}
+
+\subsection{Discussion}
+
+This experiment demonstrates that (1) transformer models outperform classical techniques for feature request identification and (2) project managers can effectively use transfer learning to teach a model to recognize a new label with relatively few training examples. Using this approach, project managers can retrofit existing models to mine massive amounts of user feedback, without having to label a prohibitive number of training examples. While promising, the approach in this experiment has several drawbacks that merit discussion.
+
+\subsection{Threats to Validity}
+
+The primary threat to validity for this study relates to the quality of the labeled data used for training and evaluation. Issue labels in the data set came from a wide range of projects, which may or may not define an issue tag in the same way. Users apply issue tags for the purpose of organizing and prioritizing work, not with model training in mind. Since ML models require clear, consistently applied labels, this impacts both the performance of the trained ML models and the validity of the performance metrics.
+
+A second threat to validity is the set of tags included in the data set. In this study, the training and test data only included tags that did not assume additional knowledge of the project outside the title and text of the issue. OSS projects, however, often need to apply labels based on additional information from outside the text of the issue. Common tags such as "good first issue" or "won't fix" tags, for example, assume knowledge about project priorities and the difficulty of a task. While this study demonstrates the effectiveness of transfer learning for general purpose issue tags, the applicability of this approach for bespoke, project specific tags remains an open question. 
+
+Third, this experiment did not invest a significant amount of time into hyperparameter optimization for the classical ML methods. While more robust tuning could have improved the performance of these models, the magnitude of the difference in performance between the BART model and the classical models makes it highly unlikely that such tuning would alter the conclusions of this study. 
+
+\subsection{Limitations}
+
+In addition to threats to validity, this study has several limitations. First, the classification models only deal with GitHub issues. In reality, CrowdRE practitioners mine user feedback from a variety of sources, including public forums such as StackOverflow and internal feedback collection tools. While this experiment demonstrated the effectiveness of transfer learning for GitHub issue tagging, the results do not guarantee the success of this approach for more general CrowdRE tasks.
+
+Second, this experiment only deals with a single CrowdRE task: categorizing user feedback. Language models perform particularly well for this task because, for the most part, the feedback itself provides enough context for the model to make a reasonable categorization decision. Other CrowdRE tasks, such as requirement recommendation~\cite{stakerare, mobasher}, rely on additional information, including user and contributor interaction patterns. Since language models deal strictly text, CrowdRE practitioners interested in these tasks may benefit from using language models in combination with other types of models
+
+Third, the data set only included GitHub issues with tags. This was an intentional part of the research design: lack of a feature request tag does not automatically indicate that an issue is not a feature request. The user who created an issue could simply have neglected to apply a tag. However, some issues may not fall into any of the categories within a given tagging schema. Excluding issues without tags from the training and evaluation set biases the model in favor of choosing a tag, even when an issue does not need one. Updating the model to account for blank tags would require additional training.
+
+Finally, while this experiment shows that language models vastly outperform classical ML models for automated GitHub issue tagging, classical ML models remain a reasonable choice in many circumstances because deep learning models take longer to train and require higher performance hardware. In this study, fine-tuning the BART model on just 25 examples took approximately 2 hours on a machine with 32 GB of RAM and 8 cores, compared to less than two minutes for the most compute-intensive classical ML model. Inference also takes several orders of magnitude longer for BART compared to classical methods. GPUs mitigate these challenges to a certain extent. However, not all practitioners or research teams have GPUs available, and when they are available they are expensive. As a result, transfer learning from language models makes the most sense when teams (1) have sufficient data available for pre-training, (2) need to perform adjacent, but distinct language tasks and, (3) have access to compute resources powerful enough to train and serve deep learning models.
+
+\subsection{Future Research}
+
+CrowdRE would benefit significantly from several additional research pathways. First, the field a whole would benefit from a base language model trained not only on GitHub data, but also on other data sources. Researchers can accomplish this by compiling a representative CrowdRE data set and teaching BART CrowdRE-specific language patterns by training it to predict missing words within the text. Once done, such a model would provide a better baseline that the standard BART model for downstream tasks. This line of research would benefit from gold-standard labeled data generated using consistent labeling rules.
+
+Second, future research could expand the tagging task to include the possibility of either no tags or multiple tags. An abstractive summarization model could identify issues that do not require a label by either (1) generating a blank label for a given issue or (2) outputting a special token to represent the lack of a tag. To account for multiple tags, the model could output comma-separated tag labels. 
+
+Finally, future research could apply language models for CrowdRE tasks outside of user feedback classification. BART-based word embeddings~\cite{kaliyar}, for example, could directly improve on Mobasher and Cleland-Huang's~\cite{mobasher} recommendation framework by replacing the more traditional text vectorization techniques they used in their original paper. Additionally, the flexibility of text-to-text modeling makes a variety of interesting tasks possible. For example, a text-to-text transformer model could automatically generate follow up questions based the content of user feedback~\cite{narayan}.
+
+\subsection{Summary}
+
+This experiment shows that a text-to-text transformer models significantly outperform standard ML text classification techniques for feature request identification, despite training on a more general task. On a 40,312 example training set and 5,176 example test set, the BART text-to-text model achieved an F1 score of 79\% compared to an F1 score of 66\% for the best performing classical model. BART outperformed the classical models largely because it achieved a superior balance between precision and recall. Unlike standard ML classifier models, BART supports transfer learning through the addition of model layers trained on a new task. 
+
+The results of the experiments show that, through transfer learning, a text-to-text issue tagging model can learn to recognize previously unseen labels with very little training data. With only 25 training examples, a fine-tuned model starting with the feature request identification model identified issues describing performance problems with 82\% recall and 63\% precision, compared to 83\% recall and 81\% precision with 400 training examples. Training on 400 examples, classical ML models perform very poorly, and in some cases perform worse than random guessing.
+
+This research is important for several reasons. First, the CrowdRE literature to date has not incorporated the latest deep learning architectures for NLP. Demonstrating the efficacy of these models within a CrowdRE context opens the door to much more performant user feedback mining. Second, establishing the feasibility of transfer learning for CrowdRE tasks has significant practical implications, because it means project managers can use ML for CrowdRE tasks without a prohibitive amount of data labeling. Finally, project managers can either directly apply the model from this experiment to automatically tag issues, or further fine-tune it for their own needs. Overall, this research has established transfer learning using text-to-text transformers as a promising paradigm for NLP in CrowdRE.

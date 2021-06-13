@@ -1,0 +1,175 @@
+% !TEX root = ../thesis-sample.tex
+
+% --------- FRONT MATTER PAGES ---------------------
+
+% Title of the thesis
+\title{Network Structure and Requirements Crowdsourcing for OSS Projects}
+% capitalize significant words!
+
+% Author name
+\author{Matthew W. Robinson}
+
+% Previous degrees
+\bachelordegree{B.S.}
+\bsdepartment{Economics}
+\bsschool{U.S. Military Academy}
+\bsgrad{May 2011} % "month year"
+
+\masterdegree{M.S.}
+\msdepartment{Operations Research}
+\msschool{Georgia Institute of Technology}
+\msgrad{May 2017}  % "month year"
+% you can show or hide the MS degree line
+\showmsdegree
+% \hidemsdegree
+
+% PhD degree commands
+% Committee
+\showcommitteepage % hide this page if you're doing a MS thesis
+%\hidecommitteepage 
+
+
+% define COMMITTEE information
+
+% in general, note that administrative titles are not used, instead use "professorial titles"?
+
+% Chair must be entered separately for formatting reasons.
+\chair{Thomas Mazzuchi}
+\chairtitle{Professor of Engineering Management and Systems Engineering \& of Decision Sciences}
+
+
+\cochair{Shahram Sarkani}
+%\cochairtitle{Professor of Operations Research}
+
+\phdschool{The School of Engineering and Applied Science}
+
+\committee{ 
+% director first
+\vspace{\baselineskip}
+
+% you shouldn't write "The George Washington University" every time
+Dr. Shahram Sarkani, Professor of Engineering Management and Systems Engineering, Dissertation Co-Director\hfill
+
+% remember to add a space between committee members
+\vspace{\baselineskip}
+
+% you shouldn't write "The George Washington University" every time
+Dr. Thomas A. Mazzuchi, Professor of Engineering Management and Systems Engineering and of Decision Sciences, Dissertation Co-Director \hfill
+
+\vspace{\baselineskip}
+
+Dr. Amir Etemadi, Associate Professor of Engineering and Applied Science, Committee Member \hfill
+
+\vspace{\baselineskip}
+
+Dr. Thomas Holzer, Professional Lecturer of Engineering Management and Systems Engineering, Committee Member \hfill
+
+\vspace{\baselineskip}
+
+Dr. Joseph P. Blakford, Professional Lecturer of Engineering Management and Systems Engineering, Committee Member \hfill
+}
+
+\phdgrad{August 31, 2021}  % Month DD, YYYY
+\defensedate{July 28, 2021} 
+% Year of completion for copyright page and perhaps other places
+\year=2021
+
+% Copyright page
+%\copyrightholder{Someone else}
+
+% Dedication
+\dedication{ %
+\emph{This dissertation is dedicated to my wife, Amber, and to my parents, Eileen and Rick, for their unfailing love and encouragement.}
+}
+
+% Acknowledgments
+\acknowledgments{
+    First and foremost, I would like to acknowledge my family, who supported me throughout my time in the program. I would also like to thank Dr. Sarkani and Dr. Mazzuchi for their valuable guidance throughout the course of my research and to the anonymous peer reviewers for their feedback on my journal article. Thanks as well to the EMSE faculty members who taught me the skills I needed to make this dissertation a success, and to the staff who made everything from library access to class registration a breeze. Finally, I would like to thank Dr. Andy Glen, my undergraduate research advisor, who inspired me to pursue a PhD in the first place.
+}
+
+% -----------------------------------------------------------------
+% Typically only one of Preface/Foreword/Prologue would be in your thesis.
+% To choose one simply delete the others and they will automatically disappear
+
+% Preface
+%\preface{
+%}
+
+%\prologue{
+%}
+
+%\foreword[2]{
+%}
+% ----------------------------------------------------------------------
+
+% commands to show or hide front matter pages
+
+\showcopyright
+\showabstract
+\showcommitteepage
+\showdedication
+\showacknowledgments
+\hidepreface
+\hideprologue
+\hideforeword
+
+% Commands to hide or show lists of figures, tables, etc.
+\showtableofcontents
+\showlistoffigures
+\showlistoftables
+\hidenomenclature
+
+% ^ NOTE! April 4 hack for April 15 deadline - if any of these are missing from your TOC and there should be entries there, see lines 1435-1447 of the class file for an example. You need to wrap the appropriate function call adding a call to addcontentsline
+
+\abbreviations{
+    \acro{CRTBP}{Circular Restricted Three Body Problem}
+    \acro{NSA}{National Security Agency}
+    \acro{SSME}{Space Shuttle Main Engine}
+}
+% call an abbreviation using \ac{abbrev}
+
+% symbols and acronyms only show up when used in the text
+\symbols{
+    \acro{J}{Moment of Inertia}
+}       
+
+% if you want acronymn (simpler) then change these to show
+\hidelistofabbreviations
+\hidelistofsymbols
+
+% if you want glossaries (more powerful) then leave above as hide
+% GLOSSARIES package options - automatically turns off front pages from acronym package
+
+% acronymns and symbols are basically the same, but there are two provided 
+% locations where they can show up
+\setabbreviationstyle[acronym]{long-short}
+\setabbreviationstyle[abbreviation]{long-short}
+\makeglossaries
+% you can hide/show the glossaries page
+\showglossarieslistofabbreviations
+\showglossarieslistofsymbols
+\showglossariesglossaryofterms
+
+% acronyms defined in glossaries
+\newabbreviation{crtbp}{CRTBP}{Circular Restricted Three Body Problem}
+\newabbreviation{lidar}{LIDAR}{Light Detection and Ranging}
+% defining abbreviations like this allows for autocompletion
+\newglossaryentry{filo}{
+    name={FILO},
+    type=\glsxtrabbrvtype,
+    description={first in last out},
+    first={first in last out (FILO)}
+}
+
+% glossary entries
+\newglossaryentry{linux}{
+    name=Linux,
+    description={is a generic term referring to the family of Unix-like computer operating systems that use the Linux kernel},
+    plural=Linuces
+}
+
+
+% Some abstract text
+\abstract{
+Crowdsourcing system requirements enables project managers to elicit feedback from a broader range of stakeholders. The advantages of crowdsourcing include a higher volume of requirements reflecting a more comprehensive array of use cases and a more engaged and committed user base. Researchers cite the inability of project teams to effectively manage an increasing volume of system requirements as a possible drawback. This research analyzes a data set consisting of project management artifacts from 562 open source software (OSS) projects to determine how OSS project performance varies as the share of crowdsourced requirements increases using six measures of effectiveness: requirement close-out time, requirement response time, average comment activity, the average number of requirements per crowd member, the average retention time for crowd members, and the total volume of requirements. Additionally, the models measure how the impact of increasing the share of crowdsourced requirements changes with stakeholder network structure. The analysis shows that stakeholder network structure impacts OSS project management outcomes, and that the effect changes with the share of crowdsourced requirements. OSS projects with more concentrated stakeholder networks perform the best. The results indicate that requirements crowdsourcing faces diminishing marginal returns. OSS projects that crowdsource more than 70\% of their requirements benefit more from implementing processes to organize and prioritize existing requirements than from incentivizing the crowd to generate additional requirements. Analysis in this dissertation also suggests that OSS projects could benefit from employing CrowdRE techniques and assigning dedicated community managers to more effectively channel input from the crowd. 
+}

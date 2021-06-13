@@ -1,0 +1,168 @@
+\doublespacing
+\chapter{Methodology} \label{chap:methodology}
+
+\section{Introduction}
+
+To evaluate how the effectiveness of crowdsourcing changes with network structure, the study employs the following procedure:
+
+\begin{enumerate}
+    \item Build stakeholder networks from project management data.
+    \item Measure the intensity of crowdsourcing for each project.
+    \item Train regression models to estimate the effect of crowdsourcing and stakeholder network structure.
+    \item Interpret the results.
+\end{enumerate}
+
+The methodology section begins with a detailed description of the data set and then covers the statistical analysis approach. As a data source, this study collected project artifacts from 562 OSS projects on GitHub. The statistical approach uses generalized linear models to estimate the joint effect of stakeholder network structure and the share of crowdsourced requirements on six measures of effectiveness: requirement close-out time, requirement response time, average comments per requirement, average requirements per crowd member, requirement volume, and the average retention time for crowd members. The regression models also contain a number of control variables. To determine stakeholder network structure, this study construct stakeholder networks by connecting any two stakeholders who have collaborated on a requirement and computing three network structure variables: the Gini coefficient for network concentration, the clustering coefficient for the degree of localized clustering, and the average minimum path to measure the dispersion of the networks. In addition to the core statistical methodology, this section several additional tools for evaluating the hypotheses, including an approach for computing trade-offs between various measures of effectiveness.
+
+\section{Data Set}
+\label{data_set_section}
+
+This research leverages publicly available project management data from GitHub, a widely used code repository and collaboration tool. In total, the data set consists of 562 packages from a curated list of OSS projects and includes 24,730 distinct users, 34,982 issues, and 165,836 comments. Of the 24,730 distinct users, 1,954 submitted issues to multiple projects and 81 users submitted issues to more than 5 projects. Only 9 users submitted issues to more than 10 projects. Within the data set, 5,607 users contributed code to at least one project and 390 contributed code to multiple projects. No user contributed code to more than 10 projects. Since the overwhelming majority of users contribute to only a single project, for the purposes of analysis this study assumes that each project within the data set is independent and self-contained.
+
+The curated list of projects originated from community maintained repositories containing links to popular packages for the five most commonly used programming languages: C++~\cite{cpp}, Java~\cite{java}, JavaScript~\cite{javascript}, PHP~\cite{php}, and Python~\cite{python}. Data for each project was downloaded from the GitHub application programming interface in June 2019. Since the analysis depends on having enough information to build a meaningful stakeholder network, the data set only includes projects that have at least thirty requirements.
+
+GitHub projects manage requirements through issues. Collaboration on issues occurs through comments. Issues and comments also serve as documentation. GitHub tracks both tasks and pull requests as issues. The analysis excludes pull requests because pull requests reflect contributions to the code base rather than requirements. GitHub issues present additional difficulty because, in some cases, issues function as a help forum rather than a project management artifact. Fortunately, GitHub provides labels to separate questions from tasks. To limit the analysis to project requirements, the data only includes issues with the labels “bug”, “change”, “enhancement”, “feature”, “feature request”, or “suggestion” and ignores issues with the labels “documentation”, “help wanted”, and “question”. Although GitHub allows users to create custom labels, the analysis discards them because most custom labels appear in only a single project. 
+
+\section{Crowdsourced Requirements}
+
+The crowdsourcing literature~\cite{howe, howe2, brabham, brabham2} conceives of a crowd as a group of individuals outside an organization who perform a defined task in exchange for a reward. While all contributors in an OSS setting---including core developers---constitute a crowd in a colloquial sense, they vary with respect to their degree of participation. Setia, et al.~\cite{setia} define several categories of contributors. Core contributors implement code, manage requirements, and review code contributions from peripheral contributors. In addition to using an OSS package, peripheral contributors suggest and implement new features, find and fix bugs, and promote product adoption~\cite{setia}. Setia, et al.~\cite{setia} differentiate between high engagement peripheral contributors who implement features and fix bugs from low engagement peripheral contributors who identify requirements, but do not contribute directly to the code base~\cite{setia}. Finally, non-contributors use the software package but do not engage directly in the software development process~\cite{setia}.  
+
+Within the context of this research, the crowd refers to a set of low engagement engagement peripheral stakeholders, who identify requirements and suggest new features but do not contribute to the code base. Note that this definition does not constitute a crowd in the traditional sense. Howe~\cite{howe} originally conceived of crowdsourcing as an exchange---crowd members perform a task in exchange for a reward. Here, crowd members do not earn an explicit reward for providing feedback. However, they still have an incentive to improve product quality. The implicit reward is a more functional open source dependency for their own projects. Since peripheral contributors would have no reason to surface requirements without this incentive, the solicitation of requirements for OSS projects conforms to the prevailing definition of crowdsourcing. Further, this notion aligns with the conception of the crowd in CrowdRE~\cite{groen}, which envisions a mutually beneficial relationship between crowd members and the project team and conceives of a certain type of crowd member---impact seekers---who view the implementation of their suggestions as a primary motivator. Hereafter, the term crowd members will refer to low engagement peripheral stakeholders in OSS projects, who generate requirements but do not contribute code.
+
+Certain team members, such as dedicated project managers, may introduce requirements without ever writing code for an OSS project. This risks misclassifying requirements that the project manager has developed as crowd-contributed requirements, even though they originated from the project team. While software development teams in professional settings typically employ dedicated product managers, in the OSS community developers manage most projects. An analysis of the data set bears this out. Of stakeholders with a non-negative betweenness centrality---those who serve as a bridge to other stakeholders---81\% have contributed code to a project, as have 95\% of those with a betweenness centrality greater than $0.1$. Therefore, conflation of crowd and project manger contributed requirements does not present a concern for the OSS projects in this data set.
+
+Of contributors with a betweenness centrality greater than $0.1$, 81\% have commented on a requirement within a year of the collection date, indicating that (1) the projects remain active and (2) critical nodes represent active members of the community. This reflects the fact that the OSS project sample comes from a curated list of active projects. A random sample of community-led OSS projects may not share this characteristic, especially if the data set contains a high proportion of stale projects, limiting the applicability of the results to OSS projects more broadly.
+
+\begin{figure*}
+  \includegraphics[width=0.95\textwidth]{img/crowd_pct_hist.png}
+\caption{Histogram for the share of crowdsourced requirements}
+\label{crowd_pct_hist}
+\end{figure*}
+
+A histogram of the share of crowdsourced requirements appears in Figure \ref{crowd_pct_hist} and reveals an approximately uniform distribution across the entire range of values. On average, projects in the data set sourced 48\% of requirements from the crowd. The wide distribution for the proportion of crowdsourced requirements underscores the diversity of project management strategies for OSS projects and makes the data set ideal for comparing their relative effectiveness. The data includes some projects that do not crowdsource any requirements, which enables the analysis to test against a baseline in which no crowdsourcing occurs.
+
+\section{Network Analysis}
+
+Analyzing how the effectiveness of crowdsourcing changes with network structure requires a strategy for constructing stakeholder networks from GitHub data and measuring the structure of those networks. This study constructs stakeholder networks by creating a node for each stakeholder and adding an undirected edge between any pair of stakeholders who have collaborated on a requirement. To measure the structure of the stakeholder networks, this study computes the Gini coefficient to measure network concentration, the clustering coeffcient to measure localized clustering, and the average minimum path to measure dispersion. This section covers these procedures in detail and describes the reasoning behind each modeling choice.
+
+\subsection{Constructing Networks}
+\label{network_section}
+
+The stakeholder networks in this study consist of undirected, unweighted graphs where nodes represent stakeholders and edges represent collaboration on a requirement. As noted in Section \ref{data_set_section}, the stakeholders in the data set only include contributors and users who have submitted requirements. Using the definition from Mitchell, Agle, and Wood~\cite{mitchell}, this constitutes a narrow stakeholder set because it excludes stakeholders who do not directly participate in the requirements process. Of course, concentric circles of stakeholders exist beyond this core group, including users who have not submitted requirements, developers of dependent packages, and the broader community for a programming language. Since this study focuses on the requirements process, excluding peripheral stakeholders does not materially affect our results.
+
+Using undirected, unweighted graphs follows a pattern established in most of the studies cited in Section \ref{network_re}. Weighted edges provide an advantage insofar as they allow the model to capture the intensity of the relationship between stakeholders. Toral, Martinez-Torres, and Barrero~\cite{toral}, for instance, use weighted edges to study the influence of knowledge brokers within networks and argue that more frequent interactions indicates a more robust connection between stakeholders. The network models in this research do not include weights because, for some metrics, their inclusion produces counter-intuitive results. Higher edge weights, for instance, typically reflect longer distances between nodes, whereas more frequent interactions should reduce the distance between stakeholders. Edge weights do improve fidelity for centrality measures, such as the edge degree of nodes. However, weighting would also reduce the variability of concentration measurements within the data set, making statistical inference more difficult. Given the methodological difficulty involved in incorporating edge weights and the limited potential benefit, the networks in this study use unweighted edges.
+
+Toral, Martinez-Torres, and Barrero~\cite{toral} use directed edges to represent information flow within their networks. Specifically, they use discussion threads as the primary unit of analysis and construct networks that represent a directed chain of replies. Within the context of their work, directed edges add value due to their ability to model information flows. In the current study, however, networks represent two-way collaborations rather than a series of replies, meaning undirected edges have a more intuitive interpretation. As a result, the stakeholder networks in this research use undirected edges.
+
+\subsection{Measuring Network Structure}
+\label{network_structure}
+
+Network structure measures include the Gini coefficient for network concentration, average minimum path for network breadth, and the clustering coefficient for the level of localized clustering. These numerical measures produce more information than categorical measures of network structure and make the resulting models more intuitive for the systems engineering use case. Project managers do not have enough control over a stakeholder network to change its structure from one broad category to another. However, they can implement strategies that nudge the structure of the network in one direction or another. As a result, project managers benefit more from an understanding of the impact of smaller changes in network structure. Numerical measures capture these changes better than categorical variables.
+
+The Gini coefficient measures the amount of inequality in the degree distribution of the nodes and characterizes the level of concentration in the network. The measure ranges from zero to one. Zero reflects perfects equality and one represents perfect inequality~\cite{gini}. Although typically applied in the context of income inequality~\cite{gini2, yitzhaki}, Toral, Martinez-Torres, and Barrero~\cite{toral} show that the Gini coefficient also provides a useful measure of concentration in contributor networks for open-source software. 
+
+Note, the value of the Gini coefficient for the degree distribution of nodes in a network cannot reach one because every edge connects to a pair of nodes. As a result, a single node cannot collect degrees without sharing degrees with other nodes. Consequently, the maximum value for the Gini coefficient for a network grows with the number of nodes, but never reaches one. Similarly, the effective lower bound of the Gini coefficient for networks remains above zero. Although this property makes the Gini coefficient an imperfect measure of network concentration, as a practical matter, it only impacts relatively small networks.
+
+The original formulation defines the Gini coefficient using the Lorenz curve~\cite{gini}. However, Sen~\cite{sen} provides an equivalent formulation, which calculates the Gini coefficient as half the mean absolute difference. This formulation appears in Equation \ref{gini_coef}. Due to its simplicity, this study computes the Gini coefficient using the Sen formulation.
+
+\begin{equation}
+\label{gini_coef}
+    G = \frac{\sum_{i=1}^{n} \sum_{j=i}^{n} | x_{i} - x{j} |}{2n^2 \bar{x}}
+\end{equation}
+
+The average minimum path measures the dispersal of the network. Computing this metric involves finding the minimum path between each pair of nodes in the network and taking the simple mean of the resulting minimum paths. The clustering coefficient~\cite{holland}, which calculates the probability that two incident nodes will form a triangle and takes values between zero and one, serves as a measure of the degree of localized clustering in a network. Networks with a low level of localized clustering have hub-and-spoke structures, whereas networks with substantial localized clustering look more like webs.
+
+Watts and Strogatz~\cite{watts} describe networks with low average minimum paths and low localized clustering as small-world networks. In small-world networks, hubs tend to form, which serve as connectors between more remote nodes. By contrast, a high average minimum path combined with high localized clustering would indicate a distributed network with frequent collaboration between stakeholders in different parts of the network. Section \ref{chap:results} includes a discussion of the relative effectiveness of these different network configurations.
+
+To capture how the effectiveness of crowdsourcing changes with network structure, the models also include interaction terms between each network structure variable and the percentage of crowdsourced requirements. Interpreting the coefficients on these variables enables project managers to determine under what conditions they should consider promoting additional crowdsourcing. Moreover, a dependent relationship exists between the three network structure variables because, for instance, a change in network concentration could also change the breadth of the network. To capture this relationship, the regression models include interaction terms between the network structure variables in cases where those terms have statistically significance and materially improve the fit of the model.
+
+\section{Measures of Effectiveness}
+\label{measures_of_effectiveness}
+
+The dependent variables in this study represent OSS project measures of effectiveness and derive from the measures Stewart and Gosain~\cite{stewart}, Crowston and Howison~\cite{crowston}, Ghapanchi, et al.~\cite{ghapanchi}, and Ma~\cite{ma} discuss in their respective work. Table \ref{variable_table} details the six measures of effectiveness in this study: requirement close-out time, requirement response time, comments per requirement, requirements per crowd member, crowd retention time, and requirement volume. 
+
+Stewart~\cite{stewart} describes task completion rate as an output measure of effectiveness for OSS projects. Project teams close out a requirement when they either (a) implement the requirement or (b) decide not to address it. Since either outcome provides feedback to the crowd member who submitted the requirement, both reflect strong engagement from the project team. In this data set, requirement close-out time measures the average number of days between the opening and closing of a requirement and only considers requirements that the project team has closed. Requirement response time captures the average number of days between the opening of the requirement and the initial response to the requirement, either by commenting on or closing the requirement. While Stewart~\cite{stewart} does not discuss requirement response time as an output measure of effectiveness, this variable builds a stronger understanding of the level of engagement from the project team and also impacts input measures of effectiveness, such as user retention. If members of the project team do not respond in a timely manner, crowd members may not continue to contribute requirements.
+
+\begin{table}
+\caption{Measures of Effectiveness}
+\label{variable_table}
+\begin{tabular}{llllll}
+\hline\noalign{\smallskip}
+Variable & Category & Description  \\
+\noalign{\smallskip}\hline\noalign{\smallskip}
+Requirement Close-out Time & Output & Average time in days \\ && between requirement \\
+&& submission and close-out. \\
+Requirement Response Time & Output & Average time in days \\  && between requirement \\
+&& and the project team's \\ && response to the requirement\\
+Comments Per Requirement & Input & The average number \\ && of comments on \\
+&& each requirement. \\
+Requirements Per Crowd Member & Input & The number of requirements \\
+&& each crowd member \\ && has submitted.\\
+Crowd Retention Time & Input & The time in days between the \\ 
+&& first and last  \\ && requirements a crowd \\
+&& member submits. \\
+Requirement Volume & Input & Total number of \\ && requirements divided \\
+&& by project age in years.\\
+\noalign{\smallskip}\hline
+\end{tabular}
+\end{table}
+
+Per Stewart's~\cite{stewart} taxonomy, the remaining dependent variables reflect input measures of effectiveness. The following three variables measure levels of crowd engagement within OSS projects. Comments per requirement indicates the average number of replies in threaded discussions about a requirement. Requirements per crowd member captures the average number of requirements a crowd member submits over the lifetime of the project. Retention time finds the average span, in days, between the initial and final activity on a project by a crowd member. For each of these variables, higher values represent positive outcomes.
+
+Requirement volume divides the total number of project requirements by the age of the project in years. Scaling by project age allows for a more accurate comparison of projects that started at different times. Increasing the volume of requirements can represent either a positive or a negative outcome, depending on the situation. On the one hand, a higher volume of requirements enables project managers to process feedback from a broader range of stakeholders~\cite{hosseini}. However, an excessive number of requirements can overwhelm project teams~\cite{groen}, lower the average quality of requirements~\cite{groen}, and make prioritization difficult~\cite{stakerare, stakenet}. Therefore, requirement volume requires additional context from the other variables to determine whether it helps or hurts.
+
+Although these variables reflect many of the  measures of effectiveness in the literature, several remain unaddressed. The data set does not capture software quality~\cite{stewart}, developer satisfaction~\cite{ghapanchi}, user satisfaction~\cite{ghapanchi}, the quality of requirements~\cite{ma}, or the level of agreement between users about requirements~\cite{ma}. While in some circumstances~\cite{pagano} the length of the requirement can serve as a proxy for its quality, in this case it cannot. For instance, a measure based on length would characterize a bug report that contains a long error message with no additional information as a high quality requirement, when in reality it is not. Conversely, including important information such as version numbers and system information does not add considerably to the length of the requirement, but greatly increases its quality.
+
+Additionally, this study focuses only on requirements elicitation and does not consider other aspects of the requirements process, such as prioritization. Addressing prioritization is difficult because ambiguity about whether a project team has implemented or dismissed a requirement makes the relative priority of requirements difficult to discern. While strategies exist to address this issue---for instance, searching for linked pull requests---prioritization of individual requirements were left out of scope to limit complexity. Moreover, the GitHub data set does not contain any information from the system design phase. Consequently, the results of this study only apply to active OSS projects that have already advanced beyond the system design phase.
+
+\section{Regression Analysis}
+
+\subsection{Generalized Linear Models}
+\label{glm}
+
+The analysis utilizes generalized linear models (GLMs) in the case of non-normal response variables and ordinary least squares (OLS) regression in the case of normal response variables to estimate the magnitude of the effect of network structure and requirements crowdsourcing on each measure of effectiveness. GLMs enable the model to account for the complexities of the data, including non-normality, while still producing interpretable results amenable to statistical hypothesis testing.
+
+For normal response variables, the study performs linear regression using OLS. Elsewhere, the GLMs assume a Gamma distribution because each measure of effectiveness has a strictly positive domain. The regression analysis uses a p-value of $0.05$ to determine statistical significance. To validate the distribution assumption, the analysis computes maximum likelihood estimates using the data for the response variables and then performs a Kolmogorov-Smirnov (KS) goodness-of-fit test~\cite{wackerly, massey}. Using the log link function, the most common link function for Gamma regression~\cite{fahrmeir}, the regression model has the following form.
+
+\begin{equation}
+\label{gamma_glm}
+    E[Y|X] = e^{\alpha + X \beta}
+\end{equation}
+
+Computing the marginal effect of each independent variable requires taking the derivative of Equation \ref{gamma_glm}, which appears below in Equation \ref{gamma_marginal}.
+
+\begin{equation}
+\label{gamma_marginal}
+\frac{\partial E[Y|X, x_i]}{\partial x} = \beta_i \times e^{\alpha + X \beta}  = \beta_i \times \hat{y}
+\end{equation}
+
+Note that, for Gamma regression, the marginal effect depends on the values of the independent variables. As a result, unlike in OLS, each observation has a different marginal effect. Computing a representative measure for the marginal effect of a variable requires either (a) averaging the marginal effects across observations or (b) computing the marginal effect at typical values for the independent variables. In this case, the interaction between the network structure variables makes it difficult to choose sensible representative values. As a result, this researches averages the marginal effects across observations.
+
+GLMs assume independent, but not normally distributed, error terms~\cite{fahrmeir}. Violation of this assumption can result in biased estimators. Biased estimators do not necessarily invalidate the results of the model, but do require discussion of the potential direction of bias and how that would impact the conclusions. Models only have biased estimators when their residuals correlate with both the response variable and at least one of the independent variables~\cite{wooldridge}. To investigate potential bias in the estimators, this study uses Anscombe residual plots to assess the degree of dependence between the residuals and the response variable. Anscombe residuals account for the skewed distribution of the response variable, making them more suitable for GLMs~\cite{anscombe}. If the plots show signs of dependence, the approach uses a simple OLS regression to determine the magnitude, direction, and significance of the correlation between the residuals and the independent variables.
+
+The models employ the McFadden Psuedo-R2 to evaluate goodness-of-fit for the regression. The equation for McFadden Pseudo-R2 appears in Equation \ref{mcfadden} and calculates the improvement in deviance of the specified model over a model containing only the intercept~\cite{veall}. Although other goodness-of-fit measures exist for GLMs, the McFadden Pseudo-R2 has a simple interpretation and lends itself to easy comparison across models.
+
+\begin{equation}
+\label{mcfadden}
+    \hat{R^2} = 1 - \frac{d_{model}}{d_{null}}
+\end{equation}
+
+\subsection{Model Specification}
+
+This research employs automated variable selection to mitigate against the risk of overfitting. Specifically, the models employ the hybrid stepwise variable selection technique outlined in Friedman, Hastie, and Tibshirani~\cite{friedman, derkson}. This variable selection technique begins with a linear regression model that contains only the intercept. On each subsequent step, the method considers the addition or deletion of a variable in the model and stops when no addition or deletion would improve the Akaike Information Criteria (AIC) of the model~\cite{friedman}. In addition to the variables of interests the analysis includes project age, the number of contributors, the number of crowd members, and the number of requirements as control variables to improve inference and mitigate against attenuation bias for the variables of interest.
+
+\section{Trade-off Analysis}
+\label{trade-off}
+
+The regression models described in Section \ref{glm} provide project managers with the capability of exploring the trade-off space between various measures of effectiveness~\cite{parnell}. As noted in Section \ref{network_structure}, while project managers cannot dramatically change the structure of the stakeholder network, they can affect smaller changes in the stakeholder network by adjusting their crowd engagement strategy. Therefore, from a practical perspective, project managers face a menu of options, which represent outcomes associated with crowd participation rates that fall within a narrow band of the current level. This study employs the following methodology to estimate the trade-off space:
+
+\begin{itemize}
+    \item For each covariate in each regression model, find the values associated with the current state of the OSS project.
+    \item Using 5\% intervals, find all crowdsourcing levels within 15\% of the current percentage of crowdsource requirements. This reflects a reasonable range within which project teams could encourage additional crowd participation through methods such as gamification. 
+    \item Keeping all covariates except crowdsourcing fixed, predict the outcome for each measure of effectiveness for every percentage of crowdsource requirements.
+    \item For each measure of effectiveness, plot the prediction as a function of crowdsourcing.
+\end{itemize}
+
+This procedure makes several assumptions. First, it assumes that small changes in the share of crowdsourced requirements do not change the structure of the stakeholder network, which is valid only if the increase in crowdsourcing does not result in collaboration between a pair of stakeholders who have not previously collaborated. While this assumption does not hold in any realistic scenario, for relatively large stakeholder networks, the resulting structural changes have only a minimal impact on the predictions from the regression models. Violations of this assumption have a larger impact for small stakeholder networks. Sensitivity analysis or building an ancillary model that predicts the change in network structure would mitigate these risks. 
+
+Second, the procedure assumes independence between measures of effectiveness. In reality, an increase in requirement volume may also increase response time, even if the share of crowdsourced requirements remains the same. While structural equation models \cite{ullman} would account for dependence between the target variables, the marginal value of this technique would not justify the additional model complexity.
